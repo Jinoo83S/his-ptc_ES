@@ -278,14 +278,14 @@ function renderSlots() {
   }
 
   const sorted = keys.sort((a, b) => {
-    const ta = slotData[a]['시간목록'] || '';
-    const tb = slotData[b]['시간목록'] || '';
+    const ta = slotData[a]['시간'] || '';
+    const tb = slotData[b]['시간'] || '';
     return ta.localeCompare(tb);
   });
 
   grid.innerHTML = sorted.map(key => {
     const s        = slotData[key];
-    const timeText = s['시간목록'] || '-';
+    const timeText = s['시간'] || '-';
     const isAvail  = s['예약가능'] === true;
     const bookedBy = String(s['예약완료'] || '').trim();
     const isMine   = bookedBy === student.이름;
@@ -348,7 +348,7 @@ async function doReserve() {
   try {
     // ① 선택한 슬롯 시간 가져오기
     const newSlotVal  = slotData[selectedSlotKey];
-    const newTimeText = newSlotVal ? (newSlotVal['시간목록'] || '') : '';
+    const newTimeText = newSlotVal ? (newSlotVal['시간'] || '') : '';
 
     // ② 같은 시간대 다른 선생님 예약 여부 확인 (중복 시간 방지)
     const rvSnap = await db.ref('reservations')
@@ -396,7 +396,7 @@ async function doReserve() {
     // ⑤ 슬롯 정보 가져오기
     const slotSnap = await db.ref(`timeslots/${selectedSlotKey}`).once('value');
     const slotVal  = slotSnap.val();
-    const timeText = slotVal['시간목록'] || '';
+    const timeText = slotVal['시간'] || '';
     const timeId   = slotVal['시간ID'] || selectedSlotKey;
 
     // ⑥ reservations 업데이트 (선생님당 1개)
