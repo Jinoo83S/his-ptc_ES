@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HIS PTC 예약 2026 · 내 예약</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<style>
+:root{
+  --nv:#0F1F5C;--nv2:#1B2F7A;
+  --gd2:#E8B020;--gd3:#FBD155;
+  --bg:#EEF1F9;--tx:#111827;--sb:#5B6888;--bd:#D8DDED;
+  --gn:#15803D;--gnb:#DCFCE7;--rd:#DC2626;--rdb:#FEF2F2;
+  --rlg:22px;--sh:0 2px 16px rgba(15,31,92,.08);--shh:0 8px 36px rgba(15,31,92,.16);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px;-webkit-tap-highlight-color:transparent}
+body{font-family:'Noto Sans KR',sans-serif;background:linear-gradient(150deg,var(--nv) 0%,var(--nv2) 45%,#1A3A8F 100%);color:var(--tx);min-height:100dvh}
+button{cursor:pointer;font-family:inherit;border:none}
+
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(60px);background:var(--tx);color:#fff;padding:10px 20px;border-radius:30px;font-size:14px;font-weight:500;white-space:nowrap;max-width:90vw;z-index:10000;transition:transform .3s cubic-bezier(.34,1.56,.64,1);box-shadow:0 4px 20px rgba(0,0,0,.22)}
+#toast.on{transform:translateX(-50%) translateY(0)}
+#toast.ok{background:var(--gn)}
+#toast.err{background:var(--rd)}
+
+.page{min-height:100dvh;padding:24px 14px 54px}
+.wrap{max-width:760px;margin:0 auto}
+
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+.brand h1{font-family:'DM Serif Display',serif;font-size:20px;color:#fff;line-height:1.2}
+.brand p{margin-top:3px;font-size:12px;color:rgba(255,255,255,.65)}
+.top-btns{display:flex;gap:8px}
+.btn{padding:9px 14px;border-radius:11px;font-size:13px;font-weight:700;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.12);color:#fff;backdrop-filter:blur(8px);transition:all .14s}
+.btn:hover{background:rgba(255,255,255,.22)}
+
+/* 학생 정보 */
+.info-bar{background:rgba(255,255,255,.14);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.22);border-radius:16px;padding:14px 18px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+.stu-name{font-size:16px;font-weight:800;color:#fff}
+.stu-info{font-size:12px;color:rgba(255,255,255,.65);margin-top:2px}
+.quota-pill{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.28);border-radius:20px;padding:5px 13px;font-size:13px;font-weight:800;color:#fff}
+
+/* 예약 카드 */
+.res-list{display:flex;flex-direction:column;gap:10px}
+.rc{background:#fff;border-radius:var(--rlg);box-shadow:var(--shh);overflow:hidden;animation:fadeUp .3s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.rc-head{background:linear-gradient(120deg,var(--nv),var(--nv2));padding:13px 16px;display:flex;align-items:center;gap:10px}
+.rc-icon{font-size:20px}
+.rc-teacher{flex:1;color:#fff;font-size:15px;font-weight:700}
+.rc-ts{color:rgba(255,255,255,.6);font-size:11px}
+.rc-body{padding:14px 16px}
+.rc-subj{font-size:12px;color:var(--sb);margin-bottom:6px}
+.rc-time{font-size:22px;font-weight:900;color:var(--nv);letter-spacing:-0.5px}
+.rc-date{font-size:12px;color:var(--sb);margin-top:3px}
+.btn-cancel{width:100%;margin-top:12px;padding:10px;background:var(--rdb);color:var(--rd);border:1.5px solid #FECACA;border-radius:9px;font-size:13px;font-weight:700;transition:background .14s}
+.btn-cancel:hover{background:#FEE2E2}
+
+.empty-wrap{text-align:center;padding:60px 20px;color:rgba(255,255,255,.7)}
+.empty-wrap .ei{font-size:52px;margin-bottom:14px}
+.empty-wrap h3{font-size:17px;font-weight:700;color:#fff}
+.empty-wrap p{font-size:13px;margin-top:6px}
+
+.spin-wrap{display:flex;align-items:center;justify-content:center;gap:10px;color:rgba(255,255,255,.8);font-size:13px;padding:40px 0}
+.spinner{width:20px;height:20px;border:2px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+@media(min-width:700px){.page{padding:32px 20px 60px}}
+</style>
+</head>
+<body>
+<div id="toast"></div>
+
+<div class="page">
+  <div class="wrap">
+    <div class="topbar">
+      <div class="brand">
+        <h1>내 예약 현황</h1>
+        <p>Handong International School · PTC 2026</p>
+      </div>
+      <div class="top-btns">
+        <button class="btn" onclick="location.href='subjects.html'">← 선생님 목록</button>
+        <button class="btn" onclick="logout()">로그아웃</button>
+      </div>
+    </div>
+
+    <div class="info-bar">
+      <div>
+        <div class="stu-name" id="stu-name">—</div>
+        <div class="stu-info" id="stu-info">—</div>
+      </div>
+      <div class="quota-pill" id="quota">예약 0 / 0</div>
+    </div>
+
+    <div id="res-container">
+      <div class="spin-wrap"><div class="spinner"></div>예약 목록을 불러오는 중...</div>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyANsFefoPEAdLv38VXVO17RwpzItUEi5Ls",
+  authDomain: "his-ptc-es.firebaseapp.com",
+  databaseURL: "https://his-ptc-es-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "his-ptc-es",
+  storageBucket: "his-ptc-es.firebasestorage.app",
+  messagingSenderId: "152799450434",
+  appId: "1:152799450434:web:2c3abb2eaa8f309e4324db",
+  measurementId: "G-KNGQTCP42F"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+let student = null;
+let myRes = [];
+
+function init() {
+  try { student = JSON.parse(sessionStorage.getItem('his_student')); } catch(e){}
+  if (!student) { location.href = 'index.html'; return; }
+
+  document.getElementById('stu-name').textContent = student.이름;
+  document.getElementById('stu-info').textContent = `${student.학년}학년`;
+  loadReservations();
+}
+
+async function loadReservations() {
+  try {
+    const snap = await db.ref('reservations')
+      .orderByChild('학생')
+      .equalTo(student.이름)
+      .once('value');
+
+    myRes = [];
+    snap.forEach(child => {
+      const r = child.val();
+      if (String(r.학년) === String(student.학년) && r.반 === student.반) {
+        myRes.push({ key: child.key, ...r });
+      }
+    });
+
+    // 시간순 정렬
+    myRes.sort((a, b) => (a.시간 || '').localeCompare(b.시간 || ''));
+    renderReservations();
+
+  } catch(e) {
+    console.error(e);
+    toast('예약 목록을 불러오지 못했습니다.', 'err');
+  }
+}
+
+function renderReservations() {
+  const max = student.예약횟수 || 5;
+  const curr = myRes.length;
+  document.getElementById('quota').textContent = `예약 ${curr} / ${max}`;
+
+  const container = document.getElementById('res-container');
+  if (!myRes.length) {
+    container.innerHTML = `
+      <div class="empty-wrap">
+        <div class="ei">📭</div>
+        <h3>예약 내역이 없습니다</h3>
+        <p>선생님을 선택해 예약을 진행해주세요</p>
+      </div>`;
+    return;
+  }
+
+  container.innerHTML = `<div class="res-list">${myRes.map(r => {
+    const ts = r.예약시간 ? new Date(r.예약시간).toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
+    return `<div class="rc">
+      <div class="rc-head">
+        <span class="rc-icon">📋</span>
+        <span class="rc-teacher">${r.교사} 선생님</span>
+        <span class="rc-ts">${ts}</span>
+      </div>
+      <div class="rc-body">
+        <div class="rc-subj">${r.과목 || ''}</div>
+        <div class="rc-time">${r.시간}</div>
+        <div class="rc-date">📅 2026-05-15 (PTC Day)</div>
+        <button class="btn-cancel" onclick="doCancel('${esc(r.key)}','${esc(r.교사)}','${esc(r.시간ID||'')}')">
+          예약 취소
+        </button>
+      </div>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+async function doCancel(rvKey, teacher, timeId) {
+  if (!confirm(`"${teacher} 선생님" 예약을 취소하시겠습니까?`)) return;
+
+  try {
+    // 1. reservations 삭제
+    await db.ref(`reservations/${rvKey}`).remove();
+
+    // 2. timeslots 예약완료 초기화
+    // timeId가 있으면 해당 슬롯 키 찾기
+    // 키 형식: 교사_SLXXX
+    const slotKey = `${teacher}_${timeId}`;
+    const slotSnap = await db.ref(`timeslots/${slotKey}`).once('value');
+    if (slotSnap.exists()) {
+      await db.ref(`timeslots/${slotKey}/예약완료`).set('');
+    } else {
+      // 키를 모르면 전체 검색
+      const allSnap = await db.ref('timeslots')
+        .orderByChild('교사').equalTo(teacher).once('value');
+      const updates = {};
+      allSnap.forEach(child => {
+        if (String(child.val()['예약완료']) === student.이름) {
+          updates[`timeslots/${child.key}/예약완료`] = '';
+        }
+      });
+      if (Object.keys(updates).length) {
+        await db.ref().update(updates);
+      }
+    }
+
+    toast('예약이 취소되었습니다.', 'ok');
+    await loadReservations();
+
+  } catch(e) {
+    console.error(e);
+    toast('취소 중 오류가 발생했습니다.', 'err');
+  }
+}
+
+function toast(msg, type='') {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.className = type;
+  el.classList.add('on');
+  setTimeout(() => el.classList.remove('on'), 3500);
+}
+function esc(s){ return String(s).replace(/'/g,"\\'"); }
+function logout(){ sessionStorage.clear(); location.href = 'index.html'; }
+
+init();
+</script>
+</body>
+</html>

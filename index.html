@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HIS PTC 예약 2026 · Elementary</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<style>
+:root{
+  --nv:#0F1F5C;--nv2:#1B2F7A;--nv3:#2C4099;
+  --gd2:#E8B020;--gd3:#FBD155;
+  --bg:#EEF1F9;--tx:#111827;--sb:#5B6888;--bd:#D8DDED;
+  --gn:#15803D;--rd:#DC2626;
+  --r:14px;--rlg:22px;
+  --sh:0 2px 16px rgba(15,31,92,.08);--shh:0 8px 36px rgba(15,31,92,.16);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px;-webkit-tap-highlight-color:transparent}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);min-height:100dvh}
+button{cursor:pointer;font-family:inherit;border:none}
+.hidden{display:none!important}
+.locked{opacity:.4;pointer-events:none}
+
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(60px);background:var(--tx);color:#fff;padding:10px 20px;border-radius:30px;font-size:14px;font-weight:500;white-space:nowrap;max-width:90vw;z-index:10000;transition:transform .3s cubic-bezier(.34,1.56,.64,1);box-shadow:0 4px 20px rgba(0,0,0,.22)}
+#toast.on{transform:translateX(-50%) translateY(0)}
+#toast.ok{background:var(--gn)}
+#toast.err{background:var(--rd)}
+
+/* 로그인 배경 */
+#view-login{
+  background:linear-gradient(150deg,var(--nv) 0%,var(--nv2) 45%,#1A3A8F 100%);
+  display:flex;flex-direction:column;align-items:center;
+  min-height:100dvh;padding:0 0 52px;overflow-y:auto;position:relative;
+}
+#view-login::before{
+  content:'';position:absolute;top:-120px;right:-120px;
+  width:400px;height:400px;
+  background:radial-gradient(circle,rgba(251,209,85,.1),transparent 70%);
+  border-radius:50%;pointer-events:none;
+}
+
+.admin-btn{
+  position:fixed;top:14px;right:14px;z-index:999;
+  background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);
+  color:rgba(255,255,255,.9);border-radius:9px;
+  padding:8px 14px;font-size:12px;font-weight:700;
+  transition:background .14s;text-decoration:none;
+  display:inline-flex;align-items:center;gap:5px;
+  -webkit-tap-highlight-color:transparent;
+  min-height:40px;  /* 모바일 터치 영역 확보 */
+}
+.admin-btn:hover{background:rgba(255,255,255,.22);color:#fff}
+
+.lhd{width:100%;padding:52px 24px 30px;text-align:center;position:relative}
+.emblem{width:70px;height:70px;margin:0 auto 14px;background:linear-gradient(135deg,var(--gd2),var(--gd3));border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:32px;box-shadow:0 6px 24px rgba(200,148,10,.36)}
+.lhd h1{font-family:'DM Serif Display',serif;font-size:19px;color:#fff;letter-spacing:.3px}
+.lhd .sub{font-size:12px;color:rgba(255,255,255,.55);margin-top:4px}
+.ptc-chip{display:inline-flex;align-items:center;gap:7px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);border-radius:30px;padding:6px 15px;margin-top:12px;color:rgba(255,255,255,.82);font-size:12px;font-weight:600}
+
+.lcard{background:#fff;width:calc(100% - 28px);border-radius:var(--rlg);padding:24px 20px;box-shadow:var(--shh);animation:fadeUp .45s cubic-bezier(.16,1,.3,1)}
+@keyframes fadeUp{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
+
+.step-hd{display:flex;align-items:center;gap:9px;margin-bottom:13px}
+.sn{width:25px;height:25px;border-radius:50%;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:var(--bd);color:var(--sb)}
+.sn.active{background:var(--gd2);color:var(--nv)}
+.sn.done{background:var(--gn);color:#fff}
+.slabel{font-size:14px;font-weight:700;color:var(--nv)}
+.sval{margin-left:auto;background:var(--bg);border-radius:7px;padding:3px 10px;font-size:13px;font-weight:700;color:var(--nv2)}
+hr.div{border:none;border-top:1px dashed var(--bd);margin:18px 0}
+
+.bgrid{display:flex;flex-wrap:wrap;gap:8px}
+.sb-btn{padding:9px 15px;background:var(--bg);border:2px solid var(--bd);border-radius:10px;font-size:14px;font-weight:700;color:var(--sb);transition:all .13s}
+.sb-btn:hover{border-color:var(--nv2);color:var(--nv)}
+.sb-btn.on{background:var(--nv);border-color:var(--nv);color:#fff}
+.nb-btn{padding:9px 12px;background:var(--bg);border:2px solid var(--bd);border-radius:10px;font-size:14px;font-weight:600;color:var(--sb);transition:all .13s}
+.nb-btn:hover{border-color:var(--nv2);color:var(--nv)}
+.nb-btn.on{background:var(--nv2);border-color:var(--nv2);color:#fff}
+
+/* 로딩 스피너 (이름 목록) */
+.spin-wrap{display:flex;align-items:center;gap:8px;color:var(--sb);font-size:13px}
+.spinner{width:16px;height:16px;border:2px solid var(--bd);border-top-color:var(--nv2);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.pw-row{display:flex;gap:9px;align-items:stretch}
+.pw-in{flex:1;padding:13px 14px;border:2px solid var(--bd);border-radius:10px;font-family:inherit;font-size:15px;color:var(--tx);background:#FAFBFF;outline:none;transition:border-color .2s,box-shadow .2s}
+.pw-in:focus{border-color:var(--nv2);box-shadow:0 0 0 4px rgba(27,47,122,.08)}
+.btn-login{padding:13px 18px;background:linear-gradient(135deg,var(--nv),var(--nv2));color:#fff;border-radius:10px;font-size:14px;font-weight:800;box-shadow:0 4px 14px rgba(15,31,92,.28);transition:transform .13s,box-shadow .13s;white-space:nowrap}
+.btn-login:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(15,31,92,.32)}
+.btn-login:disabled{opacity:.5;transform:none;cursor:not-allowed}
+
+@media(min-width:480px){.lcard{padding:30px 26px;width:calc(100% - 44px)}}
+@media(min-width:700px){
+  #view-login{justify-content:center}
+  .lhd{padding:60px 24px 34px}
+  .lcard{max-width:480px;width:100%;margin:0 auto 48px}
+}
+</style>
+</head>
+<body>
+<div id="toast"></div>
+
+<!-- Admin 버튼: body 최상단 고정 (view-login 밖) -->
+<a href="admin.html" class="admin-btn">⚙️ Admin</a>
+
+<div id="view-login">
+
+  <div class="lhd">
+    <div class="emblem">🎓</div>
+    <h1>Handong International School</h1>
+    <p class="sub">한동글로벌학교 초등부 Elementary</p>
+    <div class="ptc-chip">📅 PTC 예약 2026 · 5월 15일</div>
+  </div>
+
+  <div class="lcard">
+
+    <!-- STEP 1 학년 -->
+    <div id="s1">
+      <div class="step-hd">
+        <div class="sn active" id="n1">1</div>
+        <span class="slabel">학년 선택 Select Grade</span>
+        <span class="sval hidden" id="v1"></span>
+      </div>
+      <div class="bgrid">
+        <button class="sb-btn" onclick="pickGrade(1,this)">1</button>
+        <button class="sb-btn" onclick="pickGrade(2,this)">2</button>
+        <button class="sb-btn" onclick="pickGrade(3,this)">3</button>
+        <button class="sb-btn" onclick="pickGrade(4,this)">4</button>
+        <button class="sb-btn" onclick="pickGrade(5,this)">5</button>
+        <button class="sb-btn" onclick="pickGrade(6,this)">6</button>
+      </div>
+    </div>
+
+    <hr class="div">
+
+    <!-- STEP 2 이름 (반 없음) -->
+    <div id="s2" class="locked">
+      <div class="step-hd">
+        <div class="sn" id="n2">2</div>
+        <span class="slabel">이름 선택 Select Name</span>
+        <span class="sval hidden" id="v2"></span>
+      </div>
+      <div class="bgrid" id="name-btns">
+        <p style="font-size:13px;color:var(--sb)">학년을 먼저 선택하세요<br>Please select a grade first</p>
+      </div>
+    </div>
+
+    <hr class="div">
+
+    <!-- STEP 3 비밀번호 -->
+    <div id="s3" class="locked">
+      <div class="step-hd">
+        <div class="sn" id="n3">3</div>
+        <span class="slabel">비밀번호 입력 Enter password</span>
+      </div>
+      <div class="pw-row">
+        <input type="password" id="pw" class="pw-in" placeholder="비밀번호 Password"
+               onkeydown="if(event.key==='Enter')doLogin()">
+        <button class="btn-login" id="btn-login" onclick="doLogin()">로그인</button>
+      </div>
+      <p style="font-size:11px;color:var(--sb);margin-top:12px">※ 비밀번호는 생년월일 6자리 입니다.<br>※ The password is your 6-digit date of birth.</p>
+    </div>
+
+  </div>
+</div>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+// ── Firebase 초기화 ──────────────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyANsFefoPEAdLv38VXVO17RwpzItUEi5Ls",
+  authDomain: "his-ptc-es.firebaseapp.com",
+  databaseURL: "https://his-ptc-es-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "his-ptc-es",
+  storageBucket: "his-ptc-es.firebasestorage.app",
+  messagingSenderId: "152799450434",
+  appId: "1:152799450434:web:2c3abb2eaa8f309e4324db",
+  measurementId: "G-KNGQTCP42F"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// ── 상태 ─────────────────────────────────────────
+const S = { grade:null, cls:'A', name:null }; // 반은 'A' 고정
+
+// ── 토스트 ───────────────────────────────────────
+function toast(msg, type='') {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.className = type;
+  el.classList.add('on');
+  setTimeout(() => el.classList.remove('on'), 3500);
+}
+
+// ── 단계 헬퍼 ────────────────────────────────────
+function stepDone(n, v)  { setSN(n,'done','✓'); setV(n, v); }
+function stepActive(n)   { setSN(n,'active', n); hideV(n); }
+function stepReset(n)    { setSN(n,'', n); hideV(n); }
+function setSN(n,cls,txt){ const el=document.getElementById('n'+n); if(el){ el.className='sn'+(cls?' '+cls:''); el.textContent=txt; } }
+function setV(n, v)      { const el=document.getElementById('v'+n); if(el){ el.textContent=v; el.classList.remove('hidden'); } }
+function hideV(n)        { const el=document.getElementById('v'+n); if(el) el.classList.add('hidden'); }
+function lock(n)         { const el=document.getElementById('s'+n); if(el) el.classList.add('locked'); }
+function unlock(n)       { const el=document.getElementById('s'+n); if(el) el.classList.remove('locked'); }
+function esc(s)          { return String(s).replace(/'/g,"\\'"); }
+
+// ── STEP 1: 학년 선택 → Firebase에서 이름 목록 ──
+async function pickGrade(g, btn) {
+  S.grade = g; S.name = null;
+
+  document.querySelectorAll('#s1 .sb-btn').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  stepDone(1, g + '학년');
+
+  unlock(2); stepActive(2);
+  lock(3);
+  document.getElementById('pw').value = '';
+
+  // 로딩 표시
+  document.getElementById('name-btns').innerHTML =
+    '<div class="spin-wrap"><div class="spinner"></div>학생 목록 불러오는 중...</div>';
+
+  try {
+    const snap = await db.ref('students')
+      .orderByChild('반')
+      .equalTo('A')
+      .once('value');
+
+    const all = [];
+    snap.forEach(child => {
+      const s = child.val();
+      if (String(s['학년']) === String(g)) {
+        all.push(s['이름']);
+      }
+    });
+
+    if (!all.length) {
+      document.getElementById('name-btns').innerHTML =
+        '<p style="font-size:13px;color:var(--sb)">해당 학년 학생이 없습니다.</p>';
+      return;
+    }
+
+    document.getElementById('name-btns').innerHTML = all.map(n =>
+      `<button class="nb-btn" onclick="pickName('${esc(n)}',this)">${n}</button>`
+    ).join('');
+
+  } catch(e) {
+    console.error(e);
+    document.getElementById('name-btns').innerHTML =
+      '<p style="font-size:13px;color:var(--rd)">⚠️ 불러오기 실패. 새로고침 후 다시 시도하세요.</p>';
+  }
+}
+
+// ── STEP 2: 이름 선택 ────────────────────────────
+function pickName(n, btn) {
+  S.name = n;
+  document.querySelectorAll('#name-btns .nb-btn').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  stepDone(2, n);
+  unlock(3); stepActive(3);
+  setTimeout(() => document.getElementById('pw').focus(), 80);
+}
+
+// ── STEP 3: 로그인 ───────────────────────────────
+async function doLogin() {
+  if (!S.grade || !S.name) {
+    toast('학년과 이름을 선택해주세요.', 'err'); return;
+  }
+  const pw = document.getElementById('pw').value.trim();
+  if (!pw) { toast('비밀번호를 입력해주세요.', 'err'); return; }
+
+  const btn = document.getElementById('btn-login');
+  btn.disabled = true;
+  btn.textContent = '확인 중...';
+
+  try {
+    const key = `${S.grade}_${S.cls}_${S.name}`;
+    const snap = await db.ref(`students/${key}`).once('value');
+    const student = snap.val();
+
+    if (!student) {
+      toast('학생 정보를 찾을 수 없습니다.', 'err'); return;
+    }
+    if (String(student['비밀번호']) !== pw) {
+      toast('비밀번호가 올바르지 않습니다.', 'err');
+      document.getElementById('pw').value = '';
+      document.getElementById('pw').focus();
+      return;
+    }
+
+    sessionStorage.setItem('his_student', JSON.stringify({
+      학년: String(student['학년']),
+      반:   student['반'],
+      이름: student['이름'],
+      예약횟수: Number(student['예약횟수']) || 5,
+    }));
+
+    toast(`${S.name} 로그인 성공! 🎉`, 'ok');
+    setTimeout(() => location.href = 'subjects.html', 600);
+
+  } catch(e) {
+    console.error(e);
+    toast('서버 연결에 실패했습니다.', 'err');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '로그인';
+  }
+}
+</script>
+</body>
+</html>

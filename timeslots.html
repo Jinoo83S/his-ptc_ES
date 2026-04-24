@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HIS PTC 예약 2026 · 시간 선택</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<style>
+:root{
+  --nv:#0F1F5C;--nv2:#1B2F7A;
+  --gd2:#E8B020;--gd3:#FBD155;
+  --bg:#EEF1F9;--tx:#111827;--sb:#5B6888;--bd:#D8DDED;
+  --gn:#15803D;--gnb:#DCFCE7;--rd:#DC2626;--yl:#B45309;
+  --rlg:22px;--sh:0 2px 16px rgba(15,31,92,.08);--shh:0 8px 36px rgba(15,31,92,.16);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px;-webkit-tap-highlight-color:transparent}
+body{font-family:'Noto Sans KR',sans-serif;background:linear-gradient(150deg,var(--nv) 0%,var(--nv2) 45%,#1A3A8F 100%);color:var(--tx);min-height:100dvh}
+button{cursor:pointer;font-family:inherit;border:none}
+
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(60px);background:var(--tx);color:#fff;padding:10px 20px;border-radius:30px;font-size:14px;font-weight:500;white-space:nowrap;max-width:90vw;z-index:10000;transition:transform .3s cubic-bezier(.34,1.56,.64,1);box-shadow:0 4px 20px rgba(0,0,0,.22)}
+#toast.on{transform:translateX(-50%) translateY(0)}
+#toast.ok{background:var(--gn)}
+#toast.err{background:var(--rd)}
+#toast.warn{background:var(--yl)}
+
+.page{min-height:100dvh;padding:24px 14px 54px}
+.wrap{max-width:760px;margin:0 auto}
+
+/* 상단 바 */
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+.brand h1{font-family:'DM Serif Display',serif;font-size:20px;color:#fff;line-height:1.2}
+.brand p{margin-top:3px;font-size:12px;color:rgba(255,255,255,.65)}
+.top-btns{display:flex;gap:8px}
+.btn{padding:9px 14px;border-radius:11px;font-size:13px;font-weight:700;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.12);color:#fff;backdrop-filter:blur(8px);transition:all .14s}
+.btn:hover{background:rgba(255,255,255,.22)}
+.btn.gold{background:linear-gradient(135deg,var(--gd2),var(--gd3));color:var(--nv);border:none}
+
+/* 교사 정보 카드 */
+.info-card{background:rgba(255,255,255,.14);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.22);border-radius:var(--rlg);padding:18px 20px;margin-bottom:16px}
+.tc-teacher{font-size:22px;font-weight:900;color:#fff}
+.tc-subject{font-size:13px;color:rgba(255,255,255,.7);margin-top:4px}
+.tc-meta{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px}
+.tc-meta span{font-size:12px;color:rgba(255,255,255,.6)}
+
+/* 슬롯 그리드 */
+.slot-section{background:#fff;border-radius:var(--rlg);padding:20px;box-shadow:var(--shh)}
+.slot-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.slot-hd h2{font-size:16px;font-weight:800;color:var(--nv)}
+.slot-count{font-size:12px;font-weight:800;color:var(--nv2);background:var(--bg);padding:4px 10px;border-radius:999px}
+
+.slot-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+
+/* 슬롯 버튼 */
+.slot{border-radius:14px;padding:16px 10px;text-align:center;transition:all .14s;border:2px solid var(--bd);background:#F8F9FF;cursor:pointer}
+.slot:hover:not(.slot-taken):not(.slot-loading){border-color:var(--nv2);background:#EEF2FF;transform:translateY(-1px);box-shadow:0 4px 16px rgba(15,31,92,.12)}
+.slot-time{font-size:15px;font-weight:800;color:var(--nv)}
+
+/* 예약 완료 슬롯 */
+.slot-taken{background:#FFF5F5;border-color:#FECACA;cursor:not-allowed}
+.slot-taken .slot-time{color:var(--sb)}
+.slot-taken-label{font-size:10px;font-weight:800;color:var(--rd);margin-top:4px}
+
+/* 내가 다른 선생님과 같은 시간 예약한 슬롯 */
+.slot-conflict{background:#FFFBEB;border-color:#FCD34D;cursor:not-allowed}
+.slot-conflict .slot-time{color:var(--yl)}
+.slot-conflict-label{font-size:11px;font-weight:800;color:var(--yl);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* 내가 예약한 슬롯 */
+.slot-mine{background:#F0FDF4;border-color:var(--gn);cursor:default}
+.slot-mine .slot-time{color:var(--gn)}
+.slot-mine-label{font-size:10px;font-weight:800;color:var(--gn);margin-top:4px}
+
+/* 로딩 중 슬롯 */
+.slot-loading{opacity:.6;pointer-events:none}
+
+/* 로딩 스피너 */
+.spin-wrap{display:flex;align-items:center;gap:10px;color:rgba(255,255,255,.8);font-size:13px;padding:20px 0}
+.spinner{width:18px;height:18px;border:2px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+.slot-spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--bd);border-top-color:var(--nv2);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.empty{padding:28px 20px;text-align:center;color:var(--sb);font-size:14px}
+
+/* 확인 모달 */
+#cf-overlay{position:fixed;inset:0;z-index:600;background:rgba(8,18,60,.6);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:20px}
+#cf-overlay.on{display:flex}
+.cf-box{background:#fff;border-radius:20px;padding:26px 22px;width:100%;max-width:360px;box-shadow:var(--shh);animation:popIn .26s cubic-bezier(.16,1,.3,1)}
+@keyframes popIn{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:none}}
+.cf-box h3{font-size:18px;font-weight:800;margin-bottom:8px;color:var(--nv)}
+.cf-box p{font-size:13px;color:var(--sb);line-height:1.5}
+.cf-info{background:var(--bg);border-radius:12px;padding:13px;margin:14px 0}
+.cf-row{display:flex;justify-content:space-between;font-size:14px;padding:4px 0}
+.cf-row strong{font-weight:800;color:var(--nv)}
+.cf-btns{display:flex;gap:8px}
+.cf-no{flex:1;padding:12px;background:var(--bg);border-radius:11px;font-size:14px;font-weight:700;color:var(--sb)}
+.cf-yes{flex:2;padding:12px;background:linear-gradient(135deg,var(--nv),var(--nv2));border-radius:11px;font-size:14px;font-weight:800;color:#fff}
+.cf-yes:disabled{opacity:.5;cursor:not-allowed}
+
+@media(max-width:480px){.slot-grid{grid-template-columns:repeat(2,1fr)}}
+@media(min-width:700px){.page{padding:32px 20px 60px}.slot-grid{grid-template-columns:repeat(4,1fr)}}
+</style>
+</head>
+<body>
+<div id="toast"></div>
+
+<div class="page">
+  <div class="wrap">
+
+    <div class="topbar">
+      <div class="brand">
+        <h1>시간 선택</h1>
+        <p>Handong International School · PTC 2026</p>
+      </div>
+      <div class="top-btns">
+        <button class="btn" onclick="location.href='subjects.html'">← 뒤로</button>
+        <button class="btn" onclick="logout()">로그아웃</button>
+      </div>
+    </div>
+
+    <!-- 교사 정보 -->
+    <div class="info-card">
+      <div class="tc-teacher" id="tc-teacher">—</div>
+      <div class="tc-subject" id="tc-subject">—</div>
+      <div class="tc-meta">
+        <span id="tc-student">—</span>
+        <span id="tc-class">—</span>
+      </div>
+    </div>
+
+    <!-- 슬롯 목록 -->
+    <div class="slot-section">
+      <div class="slot-hd">
+        <h2>예약 가능 시간</h2>
+        <span class="slot-count" id="slot-count">0개</span>
+      </div>
+      <div id="slot-grid" class="slot-grid">
+        <div class="empty" style="grid-column:1/-1">
+          <div class="spin-wrap" style="justify-content:center;color:var(--sb)">
+            <div class="spinner" style="border-top-color:var(--nv2);border-color:var(--bd)"></div>
+            시간 목록을 불러오는 중...
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- 예약 확인 모달 -->
+<div id="cf-overlay">
+  <div class="cf-box">
+    <h3>✅ 예약 확인</h3>
+    <p>아래 내용으로 예약하시겠습니까?</p>
+    <div class="cf-info">
+      <div class="cf-row"><span>선생님</span><strong id="cf-tc">—</strong></div>
+      <div class="cf-row"><span>과목</span><strong id="cf-sub">—</strong></div>
+      <div class="cf-row"><span>시간</span><strong id="cf-time">—</strong></div>
+    </div>
+    <div class="cf-btns">
+      <button class="cf-no" onclick="closeCf()">취소</button>
+      <button class="cf-yes" id="cf-confirm" onclick="doReserve()">예약하기</button>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+// ── Firebase 초기화 ──────────────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyANsFefoPEAdLv38VXVO17RwpzItUEi5Ls",
+  authDomain: "his-ptc-es.firebaseapp.com",
+  databaseURL: "https://his-ptc-es-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "his-ptc-es",
+  storageBucket: "his-ptc-es.firebasestorage.app",
+  messagingSenderId: "152799450434",
+  appId: "1:152799450434:web:2c3abb2eaa8f309e4324db",
+  measurementId: "G-KNGQTCP42F"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// ── 상태 ─────────────────────────────────────────
+let student = null;
+let selectedSubject = null;
+let slotData = {};         // { firebaseKey: slotObject }
+let selectedSlotKey = '';
+let myBookedSlotKey = '';
+let myTimeMap = {};        // { "시간텍스트": "교사이름" } — 내가 이미 예약한 시간
+let unsubscribe = null;
+let reserving = false;
+
+// ── 초기화 ───────────────────────────────────────
+function init() {
+  try {
+    student = JSON.parse(sessionStorage.getItem('his_student'));
+    selectedSubject = JSON.parse(sessionStorage.getItem('his_selected_subject'));
+  } catch(e) {}
+
+  if (!student || !selectedSubject) {
+    location.href = 'subjects.html'; return;
+  }
+
+  document.getElementById('tc-teacher').textContent = selectedSubject.교사;
+  document.getElementById('tc-subject').textContent = selectedSubject.과목;
+  document.getElementById('tc-student').textContent = `학생: ${student.이름}`;
+  document.getElementById('tc-class').textContent   = `${student.학년}학년 ${student.반}반`;
+
+  checkExistingReservation();
+}
+
+async function checkExistingReservation() {
+  try {
+    // ① 이 선생님 예약 슬롯 키 찾기
+    const tsSnap = await db.ref('timeslots')
+      .orderByChild('교사').equalTo(selectedSubject.교사).once('value');
+    tsSnap.forEach(child => {
+      if (String(child.val()['예약완료'] || '').trim() === student.이름) {
+        myBookedSlotKey = child.key;
+      }
+    });
+
+    // ② 내 모든 예약의 시간 맵 로드 (다른 선생님 포함)
+    const rvSnap = await db.ref('reservations')
+      .orderByChild('학생').equalTo(student.이름).once('value');
+    myTimeMap = {};
+    rvSnap.forEach(child => {
+      const r = child.val();
+      if (String(r.학년) === String(student.학년) && r.반 === student.반
+          && r.교사 !== selectedSubject.교사) {
+        myTimeMap[r.시간] = r.교사;  // { "13:30 - 13:40": "Adam" }
+      }
+    });
+  } catch(e) { console.error(e); }
+  subscribeSlots();
+}
+
+// ── 실시간 슬롯 구독 ─────────────────────────────
+function subscribeSlots() {
+  const ref = db.ref('timeslots').orderByChild('교사').equalTo(selectedSubject.교사);
+
+  unsubscribe = ref.on('value', snap => {
+    slotData = {};
+    snap.forEach(child => {
+      slotData[child.key] = child.val();
+    });
+    // 실시간 업데이트마다 내 예약 슬롯 키 동기화
+    syncMySlotKey();
+    renderSlots();
+  }, err => {
+    console.error(err);
+    toast('시간 데이터 로드 실패', 'err');
+  });
+}
+
+// 실시간 데이터 기준으로 내 예약 슬롯 키 동기화
+function syncMySlotKey() {
+  let found = '';
+  Object.entries(slotData).forEach(([key, s]) => {
+    if (String(s['예약완료'] || '').trim() === student.이름) {
+      found = key;
+    }
+  });
+  myBookedSlotKey = found;
+}
+
+// ── 슬롯 렌더링 ──────────────────────────────────
+function renderSlots() {
+  const grid = document.getElementById('slot-grid');
+  const keys = Object.keys(slotData);
+
+  document.getElementById('slot-count').textContent = `${keys.length}개`;
+
+  if (!keys.length) {
+    grid.innerHTML = '<div class="empty" style="grid-column:1/-1">등록된 시간 슬롯이 없습니다.</div>';
+    return;
+  }
+
+  const sorted = keys.sort((a, b) => {
+    const ta = slotData[a]['시간목록'] || '';
+    const tb = slotData[b]['시간목록'] || '';
+    return ta.localeCompare(tb);
+  });
+
+  grid.innerHTML = sorted.map(key => {
+    const s        = slotData[key];
+    const timeText = s['시간목록'] || '-';
+    const isAvail  = s['예약가능'] === true;
+    const bookedBy = String(s['예약완료'] || '').trim();
+    const isMine   = bookedBy === student.이름;
+    const isTaken  = bookedBy !== '' && !isMine;
+
+    // ✅ 내 예약 슬롯
+    if (isMine) {
+      return `<div class="slot slot-mine">
+        <div class="slot-time">${timeText}</div>
+        <div class="slot-mine-label">✓ 내 예약</div>
+      </div>`;
+    }
+    // 🔒 다른 학생이 이미 예약한 슬롯
+    if (!isAvail || isTaken) {
+      return `<div class="slot slot-taken">
+        <div class="slot-time">${timeText}</div>
+        <div class="slot-taken-label">🔒 마감</div>
+      </div>`;
+    }
+    // ⚠️ 내가 다른 선생님과 이미 같은 시간 예약 → 교사이름 표시
+    const conflictTeacher = myTimeMap[timeText] || '';
+    if (conflictTeacher) {
+      return `<div class="slot slot-conflict">
+        <div class="slot-time">${timeText}</div>
+        <div class="slot-conflict-label">📌 ${conflictTeacher}</div>
+      </div>`;
+    }
+    // ✅ 예약 가능
+    const hasMyBooking = myBookedSlotKey !== '';
+    return `<div class="slot" onclick="pickSlot('${key}','${esc(timeText)}')">
+      <div class="slot-time">${timeText}</div>
+      ${hasMyBooking ? `<div style="font-size:10px;color:var(--yl);margin-top:3px">🔄 변경 가능</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+// ── 슬롯 선택 → 확인 모달 ────────────────────────
+function pickSlot(key, timeText) {
+  if (reserving) return;
+  selectedSlotKey = key;
+  document.getElementById('cf-tc').textContent   = selectedSubject.교사;
+  document.getElementById('cf-sub').textContent  = selectedSubject.과목;
+  document.getElementById('cf-time').textContent = timeText;
+  document.getElementById('cf-overlay').classList.add('on');
+}
+function closeCf() {
+  document.getElementById('cf-overlay').classList.remove('on');
+  selectedSlotKey = '';
+}
+
+// ── 예약 처리 (Firebase Transaction) ────────────
+async function doReserve() {
+  if (!selectedSlotKey || reserving) return;
+
+  const btn = document.getElementById('cf-confirm');
+  btn.disabled = true;
+  btn.textContent = '처리 중...';
+  reserving = true;
+
+  try {
+    // ① 선택한 슬롯 시간 가져오기
+    const newSlotVal  = slotData[selectedSlotKey];
+    const newTimeText = newSlotVal ? (newSlotVal['시간목록'] || '') : '';
+
+    // ② 같은 시간대 다른 선생님 예약 여부 확인 (중복 시간 방지)
+    const rvSnap = await db.ref('reservations')
+      .orderByChild('학생').equalTo(student.이름).once('value');
+
+    let conflictTeacher = '';
+    rvSnap.forEach(child => {
+      const r = child.val();
+      if (String(r.학년) === String(student.학년) && r.반 === student.반
+          && r.교사 !== selectedSubject.교사   // 다른 선생님
+          && r.시간 === newTimeText) {          // 같은 시간
+        conflictTeacher = r.교사;
+      }
+    });
+
+    if (conflictTeacher) {
+      toast(`${newTimeText} 시간에 이미 ${conflictTeacher} 선생님 예약이 있습니다.`, 'err');
+      closeCf();
+      return;
+    }
+
+    // ③ 이미 이 선생님 예약이 있으면 기존 슬롯 먼저 해제
+    if (myBookedSlotKey && myBookedSlotKey !== selectedSlotKey) {
+      await db.ref(`timeslots/${myBookedSlotKey}/예약완료`).set('');
+    }
+
+    // ④ 새 슬롯 Transaction (선착순)
+    const slotRef = db.ref(`timeslots/${selectedSlotKey}/예약완료`);
+    const result = await slotRef.transaction(current => {
+      if (current === null || current === '' || current === student.이름) {
+        return student.이름;
+      }
+      return; // 다른 사람 예약 → abort
+    });
+
+    if (!result.committed) {
+      if (myBookedSlotKey && myBookedSlotKey !== selectedSlotKey) {
+        await db.ref(`timeslots/${myBookedSlotKey}/예약완료`).set(student.이름);
+      }
+      toast('방금 다른 분이 예약했습니다. 다른 시간을 선택해주세요.', 'warn');
+      closeCf();
+      return;
+    }
+
+    // ⑤ 슬롯 정보 가져오기
+    const slotSnap = await db.ref(`timeslots/${selectedSlotKey}`).once('value');
+    const slotVal  = slotSnap.val();
+    const timeText = slotVal['시간목록'] || '';
+    const timeId   = slotVal['시간ID'] || selectedSlotKey;
+
+    // ⑥ reservations 업데이트 (선생님당 1개)
+    const rvKey = `${student.학년}_${student.반}_${student.이름}_${selectedSubject.교사}`;
+    await db.ref(`reservations/${rvKey}`).set({
+      학생:    student.이름,
+      학년:    String(student.학년),
+      반:      student.반,
+      교사:    selectedSubject.교사,
+      과목:    selectedSubject.과목,
+      시간:    timeText,
+      시간ID:  timeId,
+      예약시간: new Date().toISOString()
+    });
+
+    myBookedSlotKey = selectedSlotKey;
+    toast(`${selectedSubject.교사} ${timeText} 예약 완료! 🎉`, 'ok');
+    closeCf();
+
+  } catch(e) {
+    console.error(e);
+    toast('예약 중 오류가 발생했습니다.', 'err');
+  } finally {
+    reserving = false;
+    btn.disabled = false;
+    btn.textContent = '예약하기';
+  }
+}
+
+// ── 유틸 ─────────────────────────────────────────
+function toast(msg, type='') {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.className = type;
+  el.classList.add('on');
+  setTimeout(() => el.classList.remove('on'), 3500);
+}
+function esc(s){ return String(s).replace(/'/g,"\\'"); }
+function logout(){
+  if (unsubscribe) db.ref('timeslots').off('value', unsubscribe);
+  sessionStorage.clear();
+  location.href = 'index.html';
+}
+
+// 페이지 떠날 때 리스너 해제
+window.addEventListener('beforeunload', () => {
+  if (unsubscribe) db.ref('timeslots').off('value', unsubscribe);
+});
+
+init();
+</script>
+</body>
+</html>

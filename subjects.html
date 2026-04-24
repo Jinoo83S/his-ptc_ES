@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HIS PTC 예약 2026 · 과목 선택</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<style>
+:root{
+  --nv:#0F1F5C;--nv2:#1B2F7A;--nv3:#2C4099;
+  --gd2:#E8B020;--gd3:#FBD155;
+  --bg:#EEF1F9;--tx:#111827;--sb:#5B6888;--bd:#D8DDED;
+  --gn:#15803D;--gnb:#DCFCE7;--rd:#DC2626;--rdb:#FEF2F2;
+  --rlg:22px;--sh:0 2px 16px rgba(15,31,92,.08);--shh:0 8px 36px rgba(15,31,92,.16);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px;-webkit-tap-highlight-color:transparent}
+body{font-family:'Noto Sans KR',sans-serif;background:linear-gradient(150deg,var(--nv) 0%,var(--nv2) 45%,#1A3A8F 100%);color:var(--tx);min-height:100dvh}
+button{cursor:pointer;font-family:inherit;border:none}
+
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(60px);background:var(--tx);color:#fff;padding:10px 20px;border-radius:30px;font-size:14px;font-weight:500;white-space:nowrap;max-width:90vw;z-index:10000;transition:transform .3s cubic-bezier(.34,1.56,.64,1);box-shadow:0 4px 20px rgba(0,0,0,.22)}
+#toast.on{transform:translateX(-50%) translateY(0)}
+#toast.ok{background:var(--gn)}
+#toast.err{background:var(--rd)}
+#toast.warn{background:#B45309}
+
+.page{min-height:100dvh;padding:24px 14px 54px}
+.wrap{max-width:760px;margin:0 auto}
+
+/* 상단 바 */
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+.brand h1{font-family:'DM Serif Display',serif;font-size:20px;color:#fff;line-height:1.2}
+.brand p{margin-top:3px;font-size:12px;color:rgba(255,255,255,.65)}
+.top-btns{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.btn{padding:9px 14px;border-radius:11px;font-size:13px;font-weight:700;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.12);color:#fff;backdrop-filter:blur(8px);transition:all .14s}
+.btn:hover{background:rgba(255,255,255,.22)}
+.btn.gold{background:linear-gradient(135deg,var(--gd2),var(--gd3));color:var(--nv);border:none}
+
+/* 학생 정보 카드 */
+.info-card{background:rgba(255,255,255,.14);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.22);border-radius:var(--rlg);padding:16px 20px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+.stu-name{font-size:18px;font-weight:900;color:#fff}
+.stu-info{font-size:13px;color:rgba(255,255,255,.7);margin-top:3px}
+.quota-pill{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.28);border-radius:20px;padding:6px 14px;font-size:13px;font-weight:800;color:#fff;white-space:nowrap}
+.quota-pill.warn{background:rgba(251,209,85,.25);border-color:var(--gd3);color:var(--gd3)}
+.quota-pill.full{background:rgba(220,38,38,.25);border-color:#FCA5A5;color:#FCA5A5}
+
+/* 섹션 */
+.section-label{font-size:11px;font-weight:800;color:rgba(255,255,255,.6);letter-spacing:1.5px;text-transform:uppercase;margin:20px 0 8px}
+
+/* 교사 카드 */
+.tc-list{display:flex;flex-direction:column;gap:9px}
+.tc-card{background:#fff;border-radius:var(--rlg);padding:15px 16px;display:flex;align-items:center;gap:12px;box-shadow:var(--sh);cursor:pointer;transition:all .14s;border:2px solid transparent}
+.tc-card:hover{border-color:var(--nv2);transform:translateY(-1px);box-shadow:var(--shh)}
+.tc-card.booked{border-color:var(--gn);background:#F0FDF4;cursor:default}
+.tc-card.booked:hover{transform:none;box-shadow:var(--sh)}
+.tc-ico{width:44px;height:44px;border-radius:12px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.tc-info{flex:1;min-width:0}
+.tc-name{font-size:15px;font-weight:700;color:var(--nv)}
+.tc-subj{font-size:12px;color:var(--sb);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tc-tag{font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;flex-shrink:0}
+.tag-교과{background:#EEF2FF;color:#4338CA}
+.tag-담임{background:#FFF7ED;color:#C2410C}
+.tag-진로{background:#F0FDF4;color:var(--gn)}
+.tag-booked{background:var(--gnb);color:var(--gn)}
+.tc-arr{font-size:20px;color:var(--sb);flex-shrink:0}
+.tc-chk{font-size:20px;color:var(--gn);flex-shrink:0}
+
+/* 예약된 시간 표시 */
+.booked-time{font-size:12px;color:var(--gn);font-weight:700;margin-top:2px}
+/* 이름 옆 과목 */
+.tc-name-sub{font-size:12px;font-weight:500;color:var(--sb)}
+
+/* 로딩 */
+.spin-wrap{display:flex;align-items:center;gap:10px;color:rgba(255,255,255,.8);font-size:13px;padding:20px 0}
+.spinner{width:18px;height:18px;border:2px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.empty{background:rgba(255,255,255,.1);border:1px dashed rgba(255,255,255,.25);border-radius:16px;padding:28px 20px;text-align:center;color:rgba(255,255,255,.65);font-size:14px}
+
+/* ── 예약 잠금 오버레이 ── */
+#lock-overlay{position:fixed;inset:0;z-index:300;background:rgba(8,18,60,.75);backdrop-filter:blur(10px);display:none;align-items:center;justify-content:center;padding:20px}
+#lock-overlay.on{display:flex}
+.lock-box{background:#fff;border-radius:var(--rlg);padding:36px 28px;max-width:420px;width:100%;text-align:center;box-shadow:var(--shh);animation:fadeUp .4s cubic-bezier(.16,1,.3,1)}
+.lock-icon{font-size:54px;margin-bottom:14px;line-height:1}
+.lock-box h2{font-size:20px;font-weight:900;color:var(--nv);margin-bottom:10px}
+.lock-box .lock-desc{font-size:14px;color:var(--sb);line-height:1.65;white-space:pre-line}
+.lock-period-wrap{background:var(--bg);border:1.5px solid var(--bd);border-radius:12px;padding:14px 18px;margin:18px 0;text-align:left}
+.lock-period-wrap .lp-label{font-size:11px;font-weight:800;color:var(--sb);letter-spacing:.8px;text-transform:uppercase;margin-bottom:6px}
+.lock-period-wrap .lp-row{font-size:14px;font-weight:700;color:var(--nv);line-height:1.8}
+.lock-period-wrap .lp-row span{display:inline-block;width:34px;font-size:12px;color:var(--sb);font-weight:600}
+.lock-note{font-size:12px;color:var(--sb)}
+
+@media(min-width:700px){.page{padding:32px 20px 60px}}
+</style>
+</head>
+<body>
+<div id="toast"></div>
+
+<div class="page">
+  <div class="wrap">
+
+    <!-- 상단 바 -->
+    <div class="topbar">
+      <div class="brand">
+        <h1>상담 선생님 선택</h1>
+        <p>Handong International School · PTC 2026</p>
+      </div>
+      <div class="top-btns">
+        <button class="btn gold" onclick="location.href='reservations.html'">📋 내 예약 My Reservations</button>
+        <button class="btn" onclick="logout()">로그아웃 Log out</button>
+      </div>
+    </div>
+
+    <!-- 학생 정보 -->
+    <div class="info-card">
+      <div>
+        <div class="stu-name" id="stu-name">—</div>
+        <div class="stu-info" id="stu-info">—</div>
+      </div>
+      <div class="quota-pill" id="quota">예약 Reservation 0 / 0</div>
+    </div>
+
+    <!-- 교사 목록 -->
+    <div id="teacher-container">
+      <div class="spin-wrap"><div class="spinner"></div>선생님 목록을 불러오는 중...<br>Loading the list of teachers...</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── 예약 잠금 오버레이 ── -->
+<div id="lock-overlay">
+  <div class="lock-box">
+    <div class="lock-icon" id="lock-icon">🔒</div>
+    <h2 id="lock-title">예약 기간이 아닙니다</h2>
+    <p class="lock-desc" id="lock-desc">현재 예약 가능한 기간이 아닙니다.</p>
+    <div class="lock-period-wrap" id="lock-period-wrap" style="display:none">
+      <div class="lp-label">📅 예약 가능 기간</div>
+      <div id="lock-period-rows"></div>
+    </div>
+    <p class="lock-note">문의사항은 담당 선생님께 연락해주세요.</p>
+  </div>
+</div>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+// ── Firebase 초기화 ──────────────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyANsFefoPEAdLv38VXVO17RwpzItUEi5Ls",
+  authDomain: "his-ptc-es.firebaseapp.com",
+  databaseURL: "https://his-ptc-es-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "his-ptc-es",
+  storageBucket: "his-ptc-es.firebasestorage.app",
+  messagingSenderId: "152799450434",
+  appId: "1:152799450434:web:2c3abb2eaa8f309e4324db",
+  measurementId: "G-KNGQTCP42F"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// ── 상태 ─────────────────────────────────────────
+let student = null;
+let myReservations = {};  // { 교사이름: { 시간, 예약시간 } }
+
+// ── 초기화 ───────────────────────────────────────
+function init() {
+  try {
+    student = JSON.parse(sessionStorage.getItem('his_student'));
+  } catch(e) {}
+
+  if (!student) {
+    location.href = 'index.html'; return;
+  }
+
+  // 학생 정보 표시
+  document.getElementById('stu-name').textContent = student.이름;
+  document.getElementById('stu-info').textContent = `${student.학년}학년`;
+
+  checkPeriod();
+  loadData();
+}
+
+// ── 교사 목록 + 내 예약 동시 로드 ─────────────────
+async function loadData() {
+  try {
+    // 1. 내 예약 현황 먼저 가져오기
+    const rvSnap = await db.ref('reservations')
+      .orderByChild('학생')
+      .equalTo(student.이름)
+      .once('value');
+
+    myReservations = {};
+    rvSnap.forEach(child => {
+      const r = child.val();
+      // 같은 학년/반인지 확인
+      if (String(r.학년) === String(student.학년) && r.반 === student.반) {
+        myReservations[r.교사] = { 시간: r.시간, 예약시간: r.예약시간 };
+      }
+    });
+
+    // 2. 내 수강과목 교사 목록 가져오기
+    const subSnap = await db.ref('subjects')
+      .orderByChild('이름')
+      .equalTo(student.이름)
+      .once('value');
+
+    // 교사별 중복 제거
+    const teacherMap = {};  // { 교사이름: { 과목, 분류 } }
+
+    subSnap.forEach(child => {
+      const s = child.val();
+      if (String(s.학년) === String(student.학년) && s.반 === student.반) {
+        if (!teacherMap[s.교사]) {
+          teacherMap[s.교사] = { 과목: s.과목, 분류: s.분류 };
+        }
+      }
+    });
+
+    // 담임/진로 선생님 (학년+반 기준, 이름 공백)
+    const hmSnap = await db.ref('subjects')
+      .orderByChild('이름')
+      .equalTo(' ')
+      .once('value');
+
+    hmSnap.forEach(child => {
+      const s = child.val();
+      if (String(s.학년) === String(student.학년) && s.반 === student.반) {
+        if (!teacherMap[s.교사]) {
+          teacherMap[s.교사] = { 과목: s.과목, 분류: s.분류 };
+        }
+      }
+    });
+
+    renderTeachers(teacherMap);
+
+  } catch(e) {
+    console.error(e);
+    toast('데이터를 불러오지 못했습니다.', 'err');
+    document.getElementById('teacher-container').innerHTML =
+      '<div class="empty">⚠️ 데이터 로드 실패. 새로고침 해주세요. Data loading failed. Please refresh the page.</div>';
+  }
+}
+
+// ── 교사 목록 렌더링 ────────────────────────────
+function renderTeachers(teacherMap) {
+  updateQuota(teacherMap);
+
+  const container = document.getElementById('teacher-container');
+  const teachers = Object.entries(teacherMap);
+
+  if (!teachers.length) {
+    container.innerHTML = '<div class="empty">배정된 선생님이 없습니다.<br>관리자에게 문의해주세요.<br>No teacher has been assigned.<br>Please contact the administrator.</div>';
+    return;
+  }
+
+  // 분류별 그룹화
+  const groups = { 담임: [], 진로: [], 교과: [] };
+  teachers.forEach(([tcName, info]) => {
+    const g = groups[info.분류] ? info.분류 : '교과';
+    groups[g].push({ 교사: tcName, 과목: info.과목, 분류: info.분류 });
+  });
+
+  const labelMap = { 담임: '🏠 담임 선생님', 진로: '🧭 진로 상담', 교과: '📚 수강 과목 교사' };
+  const iconMap  = { 담임: '🏠', 진로: '🧭', 교과: '👨‍🏫' };
+
+  let html = '';
+  ['담임','진로','교과'].forEach(type => {
+    if (!groups[type].length) return;
+    html += `<div class="section-label">${labelMap[type]}</div><div class="tc-list">`;
+
+    groups[type].forEach(tc => {
+      const booked = myReservations[tc.교사];
+      const tagClass = booked ? 'tag-booked' : `tag-${type}`;
+      const tagLabel = booked ? '예약완료' : (type === '담임' ? '담임' : type === '진로' ? '진로상담' : '교과');
+      const cardClass = booked ? 'tc-card booked' : 'tc-card';
+      const onClick = booked ? '' : `onclick="selectTeacher('${esc(tc.교사)}','${esc(tc.과목)}','${esc(tc.분류)}')"`;
+      const rightIcon = booked
+        ? `<span class="tc-chk">✓</span>`
+        : `<span class="tc-arr">›</span>`;
+      const bookedTimeHtml = booked
+        ? `<div class="booked-time">⏰ ${booked.시간}</div>` : '';
+
+      html += `
+        <div class="${cardClass}" ${onClick}>
+          <div class="tc-ico">${iconMap[type] || '👨‍🏫'}</div>
+          <div class="tc-info">
+            <div class="tc-name">${tc.교사} <span class="tc-name-sub">· ${tc.과목}</span></div>
+            ${bookedTimeHtml}
+          </div>
+          <span class="tc-tag ${tagClass}">${tagLabel}</span>
+          ${rightIcon}
+        </div>`;
+    });
+
+    html += '</div>';
+  });
+
+  container.innerHTML = html;
+}
+
+// ── 예약 현황 업데이트 ───────────────────────────
+function updateQuota(teacherMap) {
+  const max  = student.예약횟수 || 5;
+  const curr = Object.keys(myReservations).length;
+  const el   = document.getElementById('quota');
+  el.textContent = `예약 ${curr} / ${max}`;
+  el.className = 'quota-pill' + (curr >= max ? ' full' : curr >= max - 1 ? ' warn' : '');
+}
+
+// ── 교사 선택 → timeslots 페이지로 ──────────────
+function selectTeacher(teacher, subject, type) {
+  const max  = student.예약횟수 || 5;
+  const curr = Object.keys(myReservations).length;
+
+  if (curr >= max) {
+    toast(`최대 예약 횟수(${max}회)에 도달했습니다.`, 'warn'); return;
+  }
+
+  sessionStorage.setItem('his_selected_subject', JSON.stringify({
+    교사: teacher, 과목: subject, 분류: type
+  }));
+  location.href = 'timeslots.html';
+}
+
+// ── 예약 기간 체크 ───────────────────────────────
+async function checkPeriod() {
+  try {
+    const snap = await db.ref('settings/period').once('value');
+    const p = snap.val();
+    if (!p || !p.start || !p.end) return; // 미설정 → 제한 없음
+
+    const now = Date.now();
+    const s   = new Date(p.start);
+    const e   = new Date(p.end);
+    const fmt = d => d.toLocaleString('ko-KR', {
+      year:'numeric', month:'2-digit', day:'2-digit',
+      hour:'2-digit', minute:'2-digit', hour12:false
+    });
+
+    if (now < s.getTime()) {
+      showLock('⏳', '예약 준비 중',
+        '아직 예약 기간이 시작되지 않았습니다.\n아래 일정을 확인해주세요.', s, e, fmt);
+    } else if (now > e.getTime()) {
+      showLock('🔒', '예약이 종료되었습니다',
+        '예약 기간이 종료되었습니다.\n문의사항은 담당 선생님께 연락해주세요.', s, e, fmt);
+    }
+  } catch(err) {
+    console.error('Period check error:', err);
+    // 오류 시 제한 없음으로 처리 (서비스 중단 방지)
+  }
+}
+
+function showLock(icon, title, desc, s, e, fmt) {
+  document.getElementById('lock-icon').textContent  = icon;
+  document.getElementById('lock-title').textContent = title;
+  document.getElementById('lock-desc').textContent  = desc;
+  document.getElementById('lock-period-rows').innerHTML =
+    `<div class="lp-row"><span>시작</span>${fmt(s)}</div>` +
+    `<div class="lp-row"><span>종료</span>${fmt(e)}</div>`;
+  document.getElementById('lock-period-wrap').style.display = '';
+  document.getElementById('lock-overlay').classList.add('on');
+}
+
+// ── 유틸 ─────────────────────────────────────────
+function toast(msg, type='') {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.className = type;
+  el.classList.add('on');
+  setTimeout(() => el.classList.remove('on'), 3500);
+}
+function esc(s){ return String(s).replace(/'/g,"\\'"); }
+function logout(){
+  sessionStorage.clear();
+  location.href = 'index.html';
+}
+
+init();
+</script>
+</body>
+</html>

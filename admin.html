@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HIS PTC 관리자</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<style>
+:root{
+  --nv:#0F1F5C;--nv2:#1B2F7A;--nv3:#2C4099;
+  --gd2:#E8B020;--gd3:#FBD155;
+  --bg:#EEF1F9;--tx:#111827;--sb:#5B6888;--bd:#D8DDED;
+  --gn:#15803D;--gnb:#DCFCE7;--rd:#DC2626;--rdb:#FEF2F2;
+  --yl:#B45309;--ylb:#FFFBEB;
+  --r:12px;--rlg:18px;
+  --sh:0 2px 12px rgba(15,31,92,.07);--shh:0 6px 24px rgba(15,31,92,.14);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:15px;-webkit-tap-highlight-color:transparent}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);min-height:100dvh}
+button{cursor:pointer;font-family:inherit;border:none}
+input,select,textarea{font-family:inherit}
+
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(60px);background:var(--tx);color:#fff;padding:10px 22px;border-radius:30px;font-size:14px;font-weight:600;white-space:nowrap;max-width:90vw;z-index:10000;transition:transform .3s cubic-bezier(.34,1.56,.64,1);box-shadow:0 4px 20px rgba(0,0,0,.22)}
+#toast.on{transform:translateX(-50%) translateY(0)}
+#toast.ok{background:var(--gn)}
+#toast.err{background:var(--rd)}
+#toast.warn{background:var(--yl)}
+
+/* ── 로그인 ── */
+#login-screen{background:linear-gradient(150deg,var(--nv),var(--nv2) 50%,#1A3A8F);min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:20px}
+.login-box{background:#fff;border-radius:var(--rlg);padding:36px 32px;width:100%;max-width:360px;box-shadow:var(--shh);text-align:center;animation:fadeUp .4s cubic-bezier(.16,1,.3,1)}
+@keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+.login-icon{width:58px;height:58px;margin:0 auto 14px;background:linear-gradient(135deg,var(--gd2),var(--gd3));border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:26px;box-shadow:0 4px 14px rgba(200,148,10,.3)}
+.login-box h1{font-family:'DM Serif Display',serif;font-size:20px;color:var(--nv);margin-bottom:4px}
+.login-box p{font-size:13px;color:var(--sb);margin-bottom:22px}
+.login-input{width:100%;padding:13px;border:2px solid var(--bd);border-radius:10px;font-size:16px;text-align:center;letter-spacing:4px;outline:none;transition:border-color .2s}
+.login-input:focus{border-color:var(--nv2)}
+.login-btn{width:100%;margin-top:12px;padding:13px;background:linear-gradient(135deg,var(--nv),var(--nv2));color:#fff;border-radius:10px;font-size:15px;font-weight:800;box-shadow:0 4px 12px rgba(15,31,92,.26);transition:transform .13s}
+.login-btn:hover{transform:translateY(-1px)}
+.back-link{display:block;margin-top:12px;font-size:13px;color:var(--sb);text-decoration:none}
+.back-link:hover{color:var(--nv2)}
+
+/* ── 관리자 화면 ── */
+#admin-screen{display:none}
+.topbar{background:linear-gradient(120deg,var(--nv),var(--nv2) 55%,var(--nv3));padding:13px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(15,31,92,.2)}
+.topbar-left h1{font-family:'DM Serif Display',serif;font-size:17px;color:#fff}
+.topbar-left p{font-size:11px;color:rgba(255,255,255,.6);margin-top:2px}
+.top-btns{display:flex;gap:8px}
+.tbtn{padding:7px 13px;border-radius:9px;font-size:13px;font-weight:700;border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.12);color:#fff;transition:all .14s}
+.tbtn:hover{background:rgba(255,255,255,.22)}
+
+/* ── 탭 ── */
+.tabs{background:#fff;border-bottom:1px solid var(--bd);padding:0 20px;display:flex;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.tab{padding:12px 16px;font-size:14px;font-weight:700;color:var(--sb);border-bottom:3px solid transparent;cursor:pointer;background:none;white-space:nowrap;transition:all .14s}
+.tab:hover{color:var(--nv2)}
+.tab.active{color:var(--nv);border-bottom-color:var(--nv2)}
+
+/* ── 컨텐츠 ── */
+.content{padding:18px 16px;max-width:1100px;margin:0 auto}
+
+/* ── 필터 ── */
+.filter-bar{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:14px;align-items:center}
+.filter-bar select,.filter-bar input{padding:8px 11px;border:1.5px solid var(--bd);border-radius:9px;font-size:14px;color:var(--tx);background:#fff;outline:none;transition:border-color .2s}
+.filter-bar select:focus,.filter-bar input:focus{border-color:var(--nv2)}
+.filter-bar .flex1{flex:1;min-width:150px}
+
+/* ── 카드 ── */
+.card{background:#fff;border-radius:var(--rlg);padding:16px 18px;box-shadow:var(--sh);margin-bottom:12px}
+.card-title{font-size:15px;font-weight:800;color:var(--nv);margin-bottom:13px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.badge{font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px;background:var(--bg);color:var(--nv2)}
+
+/* ── 통계 ── */
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+.stat-card{background:#fff;border-radius:var(--r);padding:14px;box-shadow:var(--sh);text-align:center}
+.stat-num{font-size:26px;font-weight:900;color:var(--nv);line-height:1}
+.stat-label{font-size:11px;color:var(--sb);margin-top:4px;font-weight:600}
+@media(min-width:540px){.stats{grid-template-columns:repeat(4,1fr)}}
+
+/* ── 테이블 ── */
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{background:var(--bg);padding:9px 11px;text-align:left;font-size:12px;font-weight:800;color:var(--sb);letter-spacing:.3px;border-bottom:1px solid var(--bd)}
+td{padding:9px 11px;border-bottom:1px solid var(--bg);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#FAFBFF}
+
+/* ── 버튼 ── */
+.btn-save{padding:5px 12px;background:linear-gradient(135deg,var(--nv),var(--nv2));color:#fff;border-radius:7px;font-size:12px;font-weight:700}
+.btn-save:hover{opacity:.85}
+.btn-del{padding:5px 10px;background:var(--rdb);color:var(--rd);border:1.5px solid #FECACA;border-radius:7px;font-size:12px;font-weight:700}
+.btn-del:hover{background:#FEE2E2}
+.btn-avail{padding:5px 12px;border-radius:7px;font-size:12px;font-weight:700;transition:all .14s}
+.btn-avail.on{background:var(--gnb);color:var(--gn);border:1.5px solid #86EFAC}
+.btn-avail.off{background:var(--rdb);color:var(--rd);border:1.5px solid #FECACA}
+
+/* ── 체크박스 ── */
+.cb{width:16px;height:16px;cursor:pointer;accent-color:var(--nv2)}
+
+/* ── 편집 인풋 ── */
+.edit-input{padding:5px 8px;border:1.5px solid var(--bd);border-radius:7px;font-size:13px;outline:none;transition:border-color .2s}
+.edit-input:focus{border-color:var(--nv2)}
+.edit-input.num{width:65px;text-align:center}
+
+/* ── 교사 그룹 (타임슬롯 탭) ── */
+.tg{background:#fff;border-radius:var(--rlg);box-shadow:var(--sh);margin-bottom:10px;overflow:hidden}
+.tg-head{padding:13px 16px;background:linear-gradient(120deg,var(--nv),var(--nv2));display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none}
+.tg-head h3{font-size:14px;font-weight:700;color:#fff}
+.tg-stats{font-size:12px;color:rgba(255,255,255,.65)}
+.tg-arrow{color:rgba(255,255,255,.8);font-size:16px;transition:transform .2s}
+.tg-body{display:none;padding:0}
+.tg-body.open{display:block}
+
+/* ── 일괄 편집 바 ── */
+.bulk-bar{background:#EFF6FF;border:1.5px solid #BFDBFE;border-radius:10px;padding:10px 14px;margin:10px 16px;display:none;align-items:center;gap:10px;flex-wrap:wrap}
+.bulk-bar.show{display:flex}
+.bulk-bar span{font-size:13px;font-weight:700;color:var(--nv2)}
+.bulk-bar .btn-bulk-on{padding:6px 14px;background:var(--gnb);color:var(--gn);border:1.5px solid #86EFAC;border-radius:8px;font-size:13px;font-weight:700}
+.bulk-bar .btn-bulk-off{padding:6px 14px;background:var(--rdb);color:var(--rd);border:1.5px solid #FECACA;border-radius:8px;font-size:13px;font-weight:700}
+
+/* ── 스피너 ── */
+.spin-wrap{display:flex;align-items:center;justify-content:center;gap:10px;padding:28px;color:var(--sb);font-size:14px}
+.spinner{width:17px;height:17px;border:2px solid var(--bd);border-top-color:var(--nv2);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty{text-align:center;padding:28px;color:var(--sb);font-size:14px}
+
+/* ── 예약 기간 배너 ── */
+.period-banner{background:#fff;border-bottom:2px solid var(--bd);padding:10px 16px;position:sticky;top:45px;z-index:90;box-shadow:0 2px 8px rgba(15,31,92,.06)}
+.period-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.period-label{font-size:13px;font-weight:800;color:var(--nv);white-space:nowrap;display:flex;align-items:center;gap:5px}
+.period-fields{display:flex;align-items:center;gap:6px;flex-wrap:wrap;flex:1;min-width:0}
+.period-field{display:flex;align-items:center;gap:5px}
+.period-field label{font-size:11px;font-weight:700;color:var(--sb);white-space:nowrap}
+.period-field input[type=datetime-local]{padding:6px 9px;border:1.5px solid var(--bd);border-radius:8px;font-size:13px;color:var(--tx);outline:none;transition:border-color .2s;background:#FAFBFF}
+.period-field input[type=datetime-local]:focus{border-color:var(--nv2)}
+.period-sep{font-size:15px;color:var(--sb);font-weight:700;padding:0 2px}
+.btn-period-save{padding:7px 16px;background:linear-gradient(135deg,var(--nv),var(--nv2));color:#fff;border-radius:8px;font-size:13px;font-weight:800;white-space:nowrap;transition:opacity .14s;box-shadow:0 2px 8px rgba(15,31,92,.2)}
+.btn-period-save:hover{opacity:.85}
+.btn-period-clear{padding:7px 11px;background:var(--rdb);color:var(--rd);border:1.5px solid #FECACA;border-radius:8px;font-size:13px;font-weight:700;white-space:nowrap;transition:background .14s}
+.btn-period-clear:hover{background:#FEE2E2}
+.period-status{font-size:12px;font-weight:700;padding:5px 12px;border-radius:20px;white-space:nowrap;border:1.5px solid transparent}
+.period-status.open{background:var(--gnb);color:var(--gn);border-color:#86EFAC}
+.period-status.closed{background:var(--rdb);color:var(--rd);border-color:#FECACA}
+.period-status.waiting{background:var(--ylb);color:var(--yl);border-color:#FCD34D}
+.period-status.unset{background:var(--bg);color:var(--sb);border-color:var(--bd)}
+
+/* ── 모달 ── */
+#modal-overlay{position:fixed;inset:0;z-index:500;background:rgba(8,18,60,.55);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:16px}
+#modal-overlay.on{display:flex}
+.modal-box{background:#fff;border-radius:var(--rlg);padding:24px 22px;width:100%;max-width:480px;box-shadow:var(--shh);animation:fadeUp .25s cubic-bezier(.16,1,.3,1)}
+.modal-box h2{font-size:17px;font-weight:800;color:var(--nv);margin-bottom:16px}
+.form-row{margin-bottom:12px}
+.form-row label{display:block;font-size:12px;font-weight:700;color:var(--sb);margin-bottom:5px}
+.form-row input,.form-row select,.form-row textarea{width:100%;padding:9px 11px;border:1.5px solid var(--bd);border-radius:9px;font-size:14px;color:var(--tx);outline:none;transition:border-color .2s}
+.form-row input:focus,.form-row select:focus,.form-row textarea:focus{border-color:var(--nv2)}
+.modal-btns{display:flex;gap:8px;margin-top:18px}
+.modal-cancel{flex:1;padding:11px;background:var(--bg);border-radius:9px;font-size:14px;font-weight:700;color:var(--sb)}
+.modal-save{flex:2;padding:11px;background:linear-gradient(135deg,var(--nv),var(--nv2));border-radius:9px;font-size:14px;font-weight:800;color:#fff}
+</style>
+</head>
+<body>
+<div id="toast"></div>
+
+<!-- ════════════ 로그인 ════════════ -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-icon">⚙️</div>
+    <h1>관리자 페이지</h1>
+    <p>PTC 예약 시스템 · Admin</p>
+    <input type="password" id="admin-pw" class="login-input" placeholder="비밀번호"
+           maxlength="10" onkeydown="if(event.key==='Enter')checkAdmin()">
+    <button class="login-btn" onclick="checkAdmin()">로그인</button>
+    <a href="index.html" class="back-link">← 학생 예약 페이지로</a>
+  </div>
+</div>
+
+<!-- ════════════ 관리자 화면 ════════════ -->
+<div id="admin-screen">
+  <div class="topbar">
+    <div class="topbar-left">
+      <h1>PTC 관리자</h1>
+      <p>Handong International School 2026</p>
+    </div>
+    <div class="top-btns">
+      <button class="tbtn" onclick="refreshAll()">🔄 새로고침</button>
+      <button class="tbtn" onclick="adminLogout()">로그아웃</button>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('timeslots')">⏰ 교사 시간</button>
+    <button class="tab" onclick="switchTab('subjects')">📚 수강과목</button>
+    <button class="tab" onclick="switchTab('reservations')">📋 예약 현황</button>
+    <button class="tab" onclick="switchTab('students')">👤 예약 횟수</button>
+  </div>
+
+  <!-- ── 예약 기간 설정 배너 ── -->
+  <div class="period-banner" id="period-banner">
+    <div class="period-inner">
+      <span class="period-label">📅 예약 기간 설정</span>
+      <div class="period-fields">
+        <div class="period-field">
+          <label>시작</label>
+          <input type="datetime-local" id="period-start">
+        </div>
+        <span class="period-sep">~</span>
+        <div class="period-field">
+          <label>종료</label>
+          <input type="datetime-local" id="period-end">
+        </div>
+      </div>
+      <button class="btn-period-save" onclick="savePeriod()">💾 저장</button>
+      <button class="btn-period-clear" onclick="clearPeriod()">🔓 제한 해제</button>
+      <div class="period-status unset" id="period-status">미설정</div>
+    </div>
+  </div>
+
+  <!-- ── 탭1: 교사 시간 ── -->
+  <div id="tab-timeslots" class="content">
+    <div class="filter-bar">
+      <input class="flex1" type="text" id="ts-search" placeholder="🔍 교사 이름 검색" oninput="renderTimeslots()">
+    </div>
+    <div id="ts-container"><div class="spin-wrap"><div class="spinner"></div>불러오는 중...</div></div>
+  </div>
+
+  <!-- ── 탭2: 수강과목 ── -->
+  <div id="tab-subjects" class="content" style="display:none">
+    <div class="filter-bar">
+      <select id="sub-grade" onchange="renderSubjects()">
+        <option value="">전체 학년</option>
+        <option>7</option><option>8</option><option>9</option>
+        <option>10</option><option>11</option><option>12</option>
+      </select>
+      <select id="sub-class" onchange="renderSubjects()">
+        <option value="">전체 반</option>
+        <option>A</option><option>B</option><option>C</option>
+      </select>
+      <input class="flex1" type="text" id="sub-search" placeholder="🔍 교사/과목/분류 검색" oninput="renderSubjects()">
+    </div>
+    <div class="card">
+      <div class="card-title">
+        수강과목 목록
+        <div style="display:flex;gap:8px;align-items:center">
+          <span class="badge" id="sub-count">0건</span>
+          <button class="btn-save" onclick="openAddModal()">+ 과목 추가</button>
+        </div>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr>
+            <th>학년</th><th>반</th><th>분류</th><th>과목</th><th>교사</th><th style="text-align:center">학생수</th><th>수정/삭제</th>
+          </tr></thead>
+          <tbody id="sub-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 탭3: 예약 현황 ── -->
+  <div id="tab-reservations" class="content" style="display:none">
+    <div class="stats">
+      <div class="stat-card"><div class="stat-num" id="stat-total">-</div><div class="stat-label">총 예약</div></div>
+      <div class="stat-card"><div class="stat-num" id="stat-students">-</div><div class="stat-label">예약 학생</div></div>
+      <div class="stat-card"><div class="stat-num" id="stat-teachers">-</div><div class="stat-label">예약된 교사</div></div>
+      <div class="stat-card"><div class="stat-num" id="stat-slots">-</div><div class="stat-label">남은 슬롯</div></div>
+    </div>
+    <div class="filter-bar">
+      <select id="rv-grade" onchange="renderReservations()">
+        <option value="">전체 학년</option>
+        <option>7</option><option>8</option><option>9</option>
+        <option>10</option><option>11</option><option>12</option>
+      </select>
+      <select id="rv-class" onchange="renderReservations()">
+        <option value="">전체 반</option>
+        <option>A</option><option>B</option><option>C</option>
+      </select>
+      <input class="flex1" type="text" id="rv-search" placeholder="🔍 학생/교사 검색" oninput="renderReservations()">
+    </div>
+    <div class="card">
+      <div class="card-title">예약 목록
+        <div style="display:flex;gap:8px;align-items:center">
+          <span class="badge" id="rv-count">0건</span>
+          <button class="btn-save" onclick="downloadExcel()" style="background:linear-gradient(135deg,#15803D,#16a34a)">
+            ⬇️ 엑셀 다운로드
+          </button>
+        </div>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr>
+            <th>학생</th><th>학년/반</th><th>교사</th><th>과목</th><th>시간</th><th>예약시간</th><th>취소</th>
+          </tr></thead>
+          <tbody id="rv-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 탭4: 예약 횟수 ── -->
+  <div id="tab-students" class="content" style="display:none">
+    <div class="filter-bar">
+      <select id="st-grade" onchange="renderStudents()">
+        <option value="">전체 학년</option>
+        <option>7</option><option>8</option><option>9</option>
+        <option>10</option><option>11</option><option>12</option>
+      </select>
+      <select id="st-class" onchange="renderStudents()">
+        <option value="">전체 반</option>
+        <option>A</option><option>B</option><option>C</option>
+      </select>
+      <input class="flex1" type="text" id="st-search" placeholder="🔍 학생 이름 검색" oninput="renderStudents()">
+    </div>
+    <div class="card">
+      <div class="card-title">
+        학생 예약 횟수 설정
+        <div style="display:flex;gap:8px;align-items:center">
+          <input id="bulk-count" type="number" min="1" max="20" value="5" class="edit-input num">
+          <button class="btn-save" onclick="bulkUpdate()">전체 일괄 변경</button>
+        </div>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr>
+            <th>학생</th><th>학년</th><th>반</th><th>현재 횟수</th><th>수정</th>
+          </tr></thead>
+          <tbody id="st-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── 수강과목 편집/추가 모달 ── -->
+<div id="modal-overlay">
+  <div class="modal-box">
+    <h2 id="modal-title">수강과목 수정</h2>
+    <input type="hidden" id="modal-keys">
+    <p id="m-count" style="font-size:12px;color:var(--sb);margin-bottom:14px"></p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="form-row">
+        <label>학년</label>
+        <input type="text" id="m-grade" placeholder="예: 7">
+      </div>
+      <div class="form-row">
+        <label>반</label>
+        <input type="text" id="m-class" placeholder="예: A">
+      </div>
+    </div>
+    <div class="form-row">
+      <label>분류</label>
+      <select id="m-type">
+        <option>교과</option><option>담임</option><option>진로</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <label>과목명</label>
+      <input type="text" id="m-subject" placeholder="예: 국어 Korean Language Arts">
+    </div>
+    <div class="form-row">
+      <label>교사 이름</label>
+      <input type="text" id="m-teacher" placeholder="예: 이주일">
+    </div>
+    <div id="add-student-row" class="form-row" style="display:none">
+      <label>학생 이름 <span style="color:var(--sb);font-weight:400">(쉼표로 여러명: 김철수,이영희)</span></label>
+      <textarea id="m-students" rows="3" placeholder="김철수,이영희,박민수"></textarea>
+    </div>
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="closeModal()">취소</button>
+      <button class="modal-save" onclick="saveSubject()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyANsFefoPEAdLv38VXVO17RwpzItUEi5Ls",
+  authDomain: "his-ptc-es.firebaseapp.com",
+  databaseURL: "https://his-ptc-es-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "his-ptc-es",
+  storageBucket: "his-ptc-es.firebasestorage.app",
+  messagingSenderId: "152799450434",
+  appId: "1:152799450434:web:2c3abb2eaa8f309e4324db",
+  measurementId: "G-KNGQTCP42F"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+const ADMIN_PW = '1751';
+let allTimeslots = {}, allReservations = {}, allStudents = {}, allSubjects = {};
+
+// ── 로그인 ──────────────────────────────────────
+function checkAdmin() {
+  const pw = document.getElementById('admin-pw').value;
+  if (pw !== ADMIN_PW) { toast('비밀번호가 올바르지 않습니다.', 'err'); document.getElementById('admin-pw').value=''; return; }
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('admin-screen').style.display = 'block';
+  loadAll();
+}
+function adminLogout() {
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('admin-screen').style.display = 'none';
+  document.getElementById('admin-pw').value = '';
+}
+
+// ── 데이터 로드 ──────────────────────────────────
+async function loadAll() {
+  try {
+    const [tsSnap, rvSnap, stSnap, subSnap] = await Promise.all([
+      db.ref('timeslots').once('value'),
+      db.ref('reservations').once('value'),
+      db.ref('students').once('value'),
+      db.ref('subjects').once('value'),
+    ]);
+    allTimeslots    = tsSnap.val()  || {};
+    allReservations = rvSnap.val()  || {};
+    allStudents     = stSnap.val()  || {};
+    allSubjects     = subSnap.val() || {};
+    await loadSettings();
+    renderAll();
+  } catch(e) { console.error(e); toast('데이터 로드 실패', 'err'); }
+}
+function refreshAll() { loadAll().then(() => toast('새로고침 완료', 'ok')); }
+function renderAll()  { renderTimeslots(); renderSubjects(); renderReservations(); renderStudents(); }
+
+// ── 탭 전환 ──────────────────────────────────────
+const TABS = ['timeslots','subjects','reservations','students'];
+function switchTab(tab) {
+  TABS.forEach((t,i) => {
+    document.getElementById('tab-'+t).style.display = t===tab ? 'block' : 'none';
+    document.querySelectorAll('.tab')[i].classList.toggle('active', t===tab);
+  });
+}
+
+// ════════════════════════════════════════════════
+// TAB 1: 교사 시간 관리 (체크박스 일괄편집)
+// ════════════════════════════════════════════════
+function renderTimeslots() {
+  const search = (document.getElementById('ts-search').value||'').trim().toLowerCase();
+  const container = document.getElementById('ts-container');
+
+  // 교사별 그룹화
+  const teacherMap = {};
+  Object.entries(allTimeslots).forEach(([key, slot]) => {
+    const tc = slot.교사 || '';
+    if (search && !tc.toLowerCase().includes(search)) return;
+    if (!teacherMap[tc]) teacherMap[tc] = [];
+    teacherMap[tc].push({ key, ...slot });
+  });
+
+  const teachers = Object.keys(teacherMap).sort();
+  if (!teachers.length) { container.innerHTML = '<div class="empty">데이터가 없습니다.</div>'; return; }
+
+  container.innerHTML = teachers.map(tc => {
+    const slots  = teacherMap[tc].sort((a,b)=>(a.시간목록||'').localeCompare(b.시간목록||''));
+    const avail  = slots.filter(s=>s.예약가능===true).length;
+    const booked = slots.filter(s=>String(s.예약완료||'').trim()!=='').length;
+
+    return `
+    <div class="tg" id="tg_${esc(tc)}">
+      <div class="tg-head" onclick="toggleGroup('${esc(tc)}')">
+        <h3>👨‍🏫 ${tc}</h3>
+        <div style="display:flex;align-items:center;gap:12px">
+          <span class="tg-stats">전체 ${slots.length} · 예약 ${booked} · 가능 ${avail}</span>
+          <span class="tg-arrow" id="arr_${esc(tc)}">›</span>
+        </div>
+      </div>
+      <!-- 일괄편집 바 -->
+      <div class="bulk-bar" id="bulk_${esc(tc)}">
+        <span id="bulk-sel-count_${esc(tc)}">0개 선택됨</span>
+        <button class="btn-bulk-on" onclick="bulkToggleAvail('${esc(tc)}',true)">✅ 가능으로 변경</button>
+        <button class="btn-bulk-off" onclick="bulkToggleAvail('${esc(tc)}',false)">❌ 불가로 변경</button>
+        <button class="btn-bulk-on" onclick="bulkCancelSlot('${esc(tc)}')">🗑 예약 취소</button>
+      </div>
+      <div class="tg-body" id="tgb_${esc(tc)}">
+        <table style="width:100%;border-collapse:collapse;font-size:14px">
+          <thead><tr>
+            <th style="background:var(--bg);padding:8px 11px;font-size:12px;font-weight:800;color:var(--sb);width:36px">
+              <input type="checkbox" class="cb" onchange="selectAllSlots('${esc(tc)}',this.checked)" title="전체 선택">
+            </th>
+            <th style="background:var(--bg);padding:8px 11px;font-size:12px;font-weight:800;color:var(--sb)">시간</th>
+            <th style="background:var(--bg);padding:8px 11px;font-size:12px;font-weight:800;color:var(--sb)">예약가능</th>
+            <th style="background:var(--bg);padding:8px 11px;font-size:12px;font-weight:800;color:var(--sb)">예약자</th>
+            <th style="background:var(--bg);padding:8px 11px;font-size:12px;font-weight:800;color:var(--sb)">개별취소</th>
+          </tr></thead>
+          <tbody>
+            ${slots.map(s => {
+              const isAvail  = s.예약가능 === true;
+              const bookedBy = String(s.예약완료||'').trim();
+              return `<tr>
+                <td style="padding:8px 11px;border-bottom:1px solid var(--bg)">
+                  <input type="checkbox" class="cb slot-cb_${esc(tc)}" data-key="${s.key}"
+                         onchange="updateBulkBar('${esc(tc)}')">
+                </td>
+                <td style="padding:8px 11px;border-bottom:1px solid var(--bg);font-weight:600">${s.시간목록||'-'}</td>
+                <td style="padding:8px 11px;border-bottom:1px solid var(--bg)">
+                  <button class="btn-avail ${isAvail?'on':'off'}" onclick="toggleAvail('${esc(s.key)}','${esc(tc)}',${isAvail})">
+                    ${isAvail ? '✅ 가능' : '❌ 불가'}
+                  </button>
+                </td>
+                <td style="padding:8px 11px;border-bottom:1px solid var(--bg);color:${bookedBy?'var(--gn)':'var(--sb)'}">
+                  ${bookedBy ? `<strong>${bookedBy}</strong>` : '—'}
+                </td>
+                <td style="padding:8px 11px;border-bottom:1px solid var(--bg)">
+                  ${bookedBy ? `<button class="btn-del" onclick="cancelSlot('${esc(s.key)}','${esc(bookedBy)}','${esc(tc)}')">취소</button>` : '—'}
+                </td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// 교사 그룹 열기/닫기 (상태 유지)
+const openGroups = new Set();
+function toggleGroup(tc) {
+  const body = document.getElementById('tgb_'+tc);
+  const arr  = document.getElementById('arr_'+tc);
+  if (!body) return;
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  arr.style.transform = isOpen ? '' : 'rotate(90deg)';
+  if (isOpen) openGroups.delete(tc); else openGroups.add(tc);
+}
+
+// 단일 예약가능 토글 — collapse 없이 버튼만 업데이트
+async function toggleAvail(key, tc, current) {
+  try {
+    const newVal = !current;
+    await db.ref(`timeslots/${key}/예약가능`).set(newVal);
+    allTimeslots[key].예약가능 = newVal;
+    // 해당 버튼만 업데이트 (collapse 방지)
+    const btn = document.querySelector(`button[onclick="toggleAvail('${key}','${tc}',${current})"]`);
+    if (btn) {
+      btn.className = `btn-avail ${newVal?'on':'off'}`;
+      btn.textContent = newVal ? '✅ 가능' : '❌ 불가';
+      btn.setAttribute('onclick', `toggleAvail('${key}','${tc}',${newVal})`);
+    }
+    // 헤더 통계 업데이트
+    updateTgStats(tc);
+    toast(`${allTimeslots[key]['시간목록']} → ${newVal?'가능':'불가'}`, 'ok');
+  } catch(e) { toast('변경 실패', 'err'); }
+}
+
+function updateTgStats(tc) {
+  const slots = Object.values(allTimeslots).filter(s=>s.교사===tc);
+  const avail  = slots.filter(s=>s.예약가능===true).length;
+  const booked = slots.filter(s=>String(s.예약완료||'').trim()!=='').length;
+  const el = document.querySelector(`#tg_${tc} .tg-stats`);
+  if (el) el.textContent = `전체 ${slots.length} · 예약 ${booked} · 가능 ${avail}`;
+}
+
+// 전체 선택
+function selectAllSlots(tc, checked) {
+  document.querySelectorAll(`.slot-cb_${tc}`).forEach(cb => cb.checked = checked);
+  updateBulkBar(tc);
+}
+
+// 선택 개수 업데이트 → 일괄편집 바 표시
+function updateBulkBar(tc) {
+  const cbs = document.querySelectorAll(`.slot-cb_${tc}`);
+  const sel = Array.from(cbs).filter(c=>c.checked).length;
+  const bar = document.getElementById(`bulk_${tc}`);
+  const cnt = document.getElementById(`bulk-sel-count_${tc}`);
+  if (bar) bar.classList.toggle('show', sel > 0);
+  if (cnt) cnt.textContent = `${sel}개 선택됨`;
+}
+
+// 일괄 예약가능 변경
+async function bulkToggleAvail(tc, newVal) {
+  const cbs = Array.from(document.querySelectorAll(`.slot-cb_${tc}`)).filter(c=>c.checked);
+  if (!cbs.length) return;
+  try {
+    // 개별 update (루트 권한 불필요)
+    await Promise.all(cbs.map(cb => {
+      const key = cb.dataset.key;
+      allTimeslots[key].예약가능 = newVal;
+      return db.ref(`timeslots/${key}/예약가능`).set(newVal);
+    }));
+    toast(`${cbs.length}개 → ${newVal?'가능':'불가'} 변경 완료`, 'ok');
+    renderTimeslots();
+    // 열려있던 그룹 다시 열기
+    setTimeout(() => openGroups.forEach(tc2 => {
+      const b = document.getElementById('tgb_'+tc2);
+      const a = document.getElementById('arr_'+tc2);
+      if (b) { b.classList.add('open'); if (a) a.style.transform='rotate(90deg)'; }
+    }), 50);
+  } catch(e) { toast('변경 실패: '+e.message, 'err'); }
+}
+
+// 일괄 예약 취소
+async function bulkCancelSlot(tc) {
+  const cbs = Array.from(document.querySelectorAll(`.slot-cb_${tc}`)).filter(c=>c.checked);
+  const booked = cbs.filter(cb => String(allTimeslots[cb.dataset.key]?.['예약완료']||'').trim()!=='');
+  if (!booked.length) { toast('선택 중 예약된 슬롯이 없습니다.', 'warn'); return; }
+  if (!confirm(`${booked.length}개 예약을 취소하시겠습니까?`)) return;
+  try {
+    await Promise.all(booked.map(async cb => {
+      const key      = cb.dataset.key;
+      const student  = String(allTimeslots[key]['예약완료']||'').trim();
+      allTimeslots[key]['예약완료'] = '';
+      await db.ref(`timeslots/${key}/예약완료`).set('');
+      // reservations에서도 삭제
+      const rvSnap = await db.ref('reservations').orderByChild('학생').equalTo(student).once('value');
+      rvSnap.forEach(child => {
+        if (child.val().교사 === tc) {
+          db.ref(`reservations/${child.key}`).remove();
+          delete allReservations[child.key];
+        }
+      });
+    }));
+    toast(`${booked.length}개 예약 취소 완료`, 'ok');
+    renderTimeslots();
+    setTimeout(() => openGroups.forEach(tc2 => {
+      const b = document.getElementById('tgb_'+tc2);
+      const a = document.getElementById('arr_'+tc2);
+      if (b) { b.classList.add('open'); if (a) a.style.transform='rotate(90deg)'; }
+    }), 50);
+  } catch(e) { toast('취소 실패: '+e.message, 'err'); }
+}
+
+// 단일 슬롯 예약 취소
+async function cancelSlot(slotKey, studentName, tc) {
+  if (!confirm(`"${studentName}"의 예약을 취소하시겠습니까?`)) return;
+  try {
+    await db.ref(`timeslots/${slotKey}/예약완료`).set('');
+    allTimeslots[slotKey]['예약완료'] = '';
+    const rvSnap = await db.ref('reservations').orderByChild('학생').equalTo(studentName).once('value');
+    rvSnap.forEach(child => {
+      if (child.val().교사 === tc) {
+        db.ref(`reservations/${child.key}`).remove();
+        delete allReservations[child.key];
+      }
+    });
+    renderTimeslots();
+    renderReservations();
+    toast('예약 취소 완료', 'ok');
+  } catch(e) { toast('취소 실패', 'err'); }
+}
+
+// ════════════════════════════════════════════════
+// TAB 2: 수강과목 (중복제거 · 추가 · 삭제)
+// ════════════════════════════════════════════════
+let subjectGroups = [];  // 렌더링된 그룹 (index로 참조)
+
+function getSubjectGroupKey(s) {
+  return `${s.학년}_${s.반}_${s.분류}_${s.과목}_${s.교사}`;
+}
+
+function renderSubjects() {
+  const grade  = document.getElementById('sub-grade').value;
+  const cls    = document.getElementById('sub-class').value;
+  const search = (document.getElementById('sub-search').value||'').trim().toLowerCase();
+
+  const groupMap = {};
+  Object.entries(allSubjects).forEach(([key, s]) => {
+    if (grade  && String(s.학년) !== grade) return;
+    if (cls    && s.반 !== cls) return;
+    if (search && !(
+      (s.교사||'').toLowerCase().includes(search) ||
+      (s.과목||'').toLowerCase().includes(search) ||
+      (s.분류||'').toLowerCase().includes(search)
+    )) return;
+    const gk = getSubjectGroupKey(s);
+    if (!groupMap[gk]) groupMap[gk] = { 학년:s.학년, 반:s.반, 분류:s.분류, 과목:s.과목, 교사:s.교사, keys:[] };
+    groupMap[gk].keys.push(key);
+  });
+
+  // 정렬: 학년 → 반 → 교사 이름 순
+  subjectGroups = Object.values(groupMap).sort((a, b) => {
+    if (String(a.학년) !== String(b.학년)) return String(a.학년).localeCompare(String(b.학년), undefined, {numeric:true});
+    if (a.반 !== b.반) return a.반.localeCompare(b.반);
+    return (a.교사||'').localeCompare(b.교사||'');
+  });
+
+  document.getElementById('sub-count').textContent = `${subjectGroups.length}건`;
+  const tbody = document.getElementById('sub-tbody');
+  if (!subjectGroups.length) {
+    tbody.innerHTML = '<tr><td colspan="7" class="empty">데이터가 없습니다.</td></tr>'; return;
+  }
+
+  tbody.innerHTML = subjectGroups.map((g, idx) => `
+    <tr>
+      <td>${g.학년||'-'}</td>
+      <td>${g.반||'-'}</td>
+      <td><span style="font-size:12px;padding:2px 7px;border-radius:12px;background:var(--bg);color:var(--nv2)">${g.분류||'-'}</span></td>
+      <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;color:var(--sb)">${g.과목||'-'}</td>
+      <td><strong>${g.교사||'-'}</strong></td>
+      <td style="font-size:12px;color:var(--sb);text-align:center">${g.keys.length}명</td>
+      <td style="white-space:nowrap;display:flex;gap:5px">
+        <button class="btn-save" data-idx="${idx}" data-action="edit">수정</button>
+        <button class="btn-del"  data-idx="${idx}" data-action="del">삭제</button>
+      </td>
+    </tr>`).join('');
+
+  // 이벤트 위임 (onclick 인라인 JSON 문제 완전 회피)
+  tbody.onclick = e => {
+    const btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    const idx = parseInt(btn.dataset.idx);
+    const g   = subjectGroups[idx];
+    if (!g) return;
+    if (btn.dataset.action === 'edit') openEditModal(g);
+    if (btn.dataset.action === 'del')  deleteSubjectGroup(g);
+  };
+}
+
+// 수강과목 편집 모달 열기
+function openEditModal(g) {
+  document.getElementById('modal-keys').value    = JSON.stringify(g.keys);
+  document.getElementById('m-grade').value       = g.학년||'';
+  document.getElementById('m-grade').readOnly    = true;
+  document.getElementById('m-grade').style.background = 'var(--bg)';
+  document.getElementById('m-class').value       = g.반||'';
+  document.getElementById('m-class').readOnly    = true;
+  document.getElementById('m-class').style.background = 'var(--bg)';
+  document.getElementById('m-type').value        = g.분류||'교과';
+  document.getElementById('m-subject').value     = g.과목||'';
+  document.getElementById('m-teacher').value     = g.교사||'';
+  document.getElementById('m-count').textContent = `${g.keys.length}개 레코드 일괄 수정`;
+  document.getElementById('add-student-row').style.display = 'none';
+  document.getElementById('modal-overlay').classList.add('on');
+}
+function closeModal() { document.getElementById('modal-overlay').classList.remove('on'); }
+
+// 수강과목 추가 모달
+function openAddModal() {
+  document.getElementById('modal-keys').value    = '[]';
+  document.getElementById('m-grade').value       = '';
+  document.getElementById('m-grade').readOnly    = false;
+  document.getElementById('m-grade').style.background = '';
+  document.getElementById('m-class').value       = '';
+  document.getElementById('m-class').readOnly    = false;
+  document.getElementById('m-class').style.background = '';
+  document.getElementById('m-type').value        = '교과';
+  document.getElementById('m-subject').value     = '';
+  document.getElementById('m-teacher').value     = '';
+  document.getElementById('m-count').textContent = '새 과목 추가';
+  document.getElementById('add-student-row').style.display = 'block';
+  document.getElementById('m-students').value    = '';
+  document.getElementById('modal-overlay').classList.add('on');
+}
+
+// 수강과목 저장 (수정 or 추가)
+async function saveSubject() {
+  let keys;
+  try { keys = JSON.parse(document.getElementById('modal-keys').value); } catch(e){ keys=[]; }
+  const grade   = String(document.getElementById('m-grade').value).trim();
+  const cls     = document.getElementById('m-class').value.trim();
+  const type    = document.getElementById('m-type').value;
+  const subject = document.getElementById('m-subject').value.trim();
+  const teacher = document.getElementById('m-teacher').value.trim();
+  if (!subject||!teacher) { toast('과목명과 교사를 입력해주세요.', 'err'); return; }
+
+  if (keys.length === 0) {
+    // 추가 모드
+    if (!grade||!cls) { toast('학년과 반을 입력해주세요.', 'err'); return; }
+    const studentsRaw = (document.getElementById('m-students').value||'').trim();
+    const studentList = studentsRaw ? studentsRaw.split(',').map(s=>s.trim()).filter(Boolean) : [' '];
+    try {
+      await Promise.all(studentList.map(name => {
+        const newKey = `${grade}_${cls}_${name}_${teacher}`;
+        const data   = { 학년:Number(grade), 반:cls, 분류:type, 이름:name, 과목:subject, 교사:teacher };
+        allSubjects[newKey] = data;
+        return db.ref(`subjects/${newKey}`).set(data);
+      }));
+      toast(`${studentList.length}개 레코드 추가 완료`, 'ok');
+      closeModal(); renderSubjects();
+    } catch(e) { toast('추가 실패: '+e.message, 'err'); }
+  } else {
+    // 수정 모드
+    try {
+      await Promise.all(keys.map(key => {
+        allSubjects[key] = { ...allSubjects[key], 분류:type, 과목:subject, 교사:teacher };
+        return db.ref(`subjects/${key}`).update({ 분류:type, 과목:subject, 교사:teacher });
+      }));
+      toast(`${keys.length}개 레코드 수정 완료`, 'ok');
+      closeModal(); renderSubjects();
+    } catch(e) { toast('저장 실패: '+e.message, 'err'); }
+  }
+}
+
+// 수강과목 그룹 삭제
+async function deleteSubjectGroup(g) {
+  if (!confirm(`"${g.과목} / ${g.교사}" 과목을 ${g.keys.length}개 레코드 모두 삭제하시겠습니까?`)) return;
+  try {
+    await Promise.all(g.keys.map(key => {
+      delete allSubjects[key];
+      return db.ref(`subjects/${key}`).remove();
+    }));
+    toast(`${g.keys.length}개 레코드 삭제 완료`, 'ok');
+    renderSubjects();
+  } catch(e) { toast('삭제 실패: '+e.message, 'err'); }
+}
+
+// ════════════════════════════════════════════════
+// TAB 3: 예약 현황
+// ════════════════════════════════════════════════
+function renderReservations() {
+  const grade  = document.getElementById('rv-grade').value;
+  const cls    = document.getElementById('rv-class').value;
+  const search = (document.getElementById('rv-search').value||'').trim().toLowerCase();
+
+  let list = Object.entries(allReservations).map(([k,v])=>({key:k,...v}));
+  if (grade)  list = list.filter(r=>String(r.학년)===grade);
+  if (cls)    list = list.filter(r=>r.반===cls);
+  if (search) list = list.filter(r=>
+    (r.학생||'').toLowerCase().includes(search)||
+    (r.교사||'').toLowerCase().includes(search)
+  );
+  list.sort((a,b)=>(a.시간||'').localeCompare(b.시간||''));
+
+  const uStu = new Set(list.map(r=>r.학생)).size;
+  const uTc  = new Set(list.map(r=>r.교사)).size;
+  const tot  = Object.values(allTimeslots).filter(s=>s.예약가능===true).length;
+  const bkd  = Object.values(allTimeslots).filter(s=>String(s.예약완료||'').trim()!=='').length;
+  document.getElementById('stat-total').textContent    = list.length;
+  document.getElementById('stat-students').textContent = uStu;
+  document.getElementById('stat-teachers').textContent = uTc;
+  document.getElementById('stat-slots').textContent    = tot-bkd;
+  document.getElementById('rv-count').textContent      = `${list.length}건`;
+
+  const tbody = document.getElementById('rv-tbody');
+  if (!list.length) { tbody.innerHTML='<tr><td colspan="7" class="empty">예약 내역이 없습니다.</td></tr>'; return; }
+
+  tbody.innerHTML = list.map(r=>{
+    const ts = r.예약시간 ? new Date(r.예약시간).toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : '-';
+    return `<tr>
+      <td><strong>${r.학생||'-'}</strong></td>
+      <td>${r.학년||'-'}학년 ${r.반||'-'}반</td>
+      <td>${r.교사||'-'}</td>
+      <td style="font-size:12px;color:var(--sb)">${r.과목||'-'}</td>
+      <td><strong>${r.시간||'-'}</strong></td>
+      <td style="font-size:12px;color:var(--sb)">${ts}</td>
+      <td><button class="btn-del" onclick="adminCancelRv('${esc(r.key)}','${esc(r.교사||'')}','${esc(r.학생||'')}')">취소</button></td>
+    </tr>`;
+  }).join('');
+}
+
+async function adminCancelRv(rvKey, teacher, studentName) {
+  if (!confirm(`"${studentName} / ${teacher}" 예약을 취소하시겠습니까?`)) return;
+  try {
+    await db.ref(`reservations/${rvKey}`).remove();
+    delete allReservations[rvKey];
+    // timeslots 복원
+    for (const [slotKey, slot] of Object.entries(allTimeslots)) {
+      if (slot.교사 === teacher && String(slot.예약완료||'').trim() === studentName) {
+        await db.ref(`timeslots/${slotKey}/예약완료`).set('');
+        allTimeslots[slotKey]['예약완료'] = '';
+        break;
+      }
+    }
+    renderReservations(); renderTimeslots();
+    toast('예약 취소 완료', 'ok');
+  } catch(e) { toast('취소 실패', 'err'); }
+}
+
+// ════════════════════════════════════════════════
+// TAB 4: 학생 예약 횟수 (개별 update → permission_denied 수정)
+// ════════════════════════════════════════════════
+function renderStudents() {
+  const grade  = document.getElementById('st-grade').value;
+  const cls    = document.getElementById('st-class').value;
+  const search = (document.getElementById('st-search').value||'').trim().toLowerCase();
+
+  let list = Object.entries(allStudents).map(([k,v])=>({key:k,...v}));
+  if (grade)  list = list.filter(s=>String(s.학년)===grade);
+  if (cls)    list = list.filter(s=>s.반===cls);
+  if (search) list = list.filter(s=>(s.이름||'').toLowerCase().includes(search));
+  list.sort((a,b)=>{
+    if(String(a.학년)!==String(b.학년)) return String(a.학년).localeCompare(String(b.학년),undefined,{numeric:true});
+    if(a.반!==b.반) return a.반.localeCompare(b.반);
+    return (a.이름||'').localeCompare(b.이름||'');
+  });
+
+  const tbody = document.getElementById('st-tbody');
+  if (!list.length) { tbody.innerHTML='<tr><td colspan="5" class="empty">학생이 없습니다.</td></tr>'; return; }
+  tbody.innerHTML = list.map(s=>`
+    <tr>
+      <td><strong>${s.이름||'-'}</strong></td>
+      <td>${s.학년||'-'}학년</td>
+      <td>${s.반||'-'}반</td>
+      <td><span style="font-size:16px;font-weight:900;color:var(--nv)">${s.예약횟수||5}</span>회</td>
+      <td style="display:flex;align-items:center;gap:6px">
+        <input class="edit-input num" type="number" min="1" max="20"
+               value="${s.예약횟수||5}" id="cnt_${esc(s.key)}">
+        <button class="btn-save" onclick="saveStudentCount('${esc(s.key)}','${esc(s.이름||'')}')">저장</button>
+      </td>
+    </tr>`).join('');
+}
+
+// 개별 저장 (각 경로에 직접 set → permission_denied 방지)
+async function saveStudentCount(key, name) {
+  const input = document.getElementById('cnt_'+key);
+  if (!input) return;
+  const val = parseInt(input.value);
+  if (isNaN(val)||val<1||val>20) { toast('1~20 사이 값을 입력해주세요.', 'err'); return; }
+  try {
+    await db.ref(`students/${key}/예약횟수`).set(val);
+    allStudents[key].예약횟수 = val;
+    toast(`${name}: ${val}회로 변경됨`, 'ok');
+    renderStudents();
+  } catch(e) { toast('저장 실패: '+e.message, 'err'); }
+}
+
+// 일괄 변경 — 개별 set() 루프 사용 (루트 update() 대신)
+async function bulkUpdate() {
+  const val   = parseInt(document.getElementById('bulk-count').value);
+  const grade = document.getElementById('st-grade').value;
+  const cls   = document.getElementById('st-class').value;
+  if (isNaN(val)||val<1||val>20) { toast('1~20 사이 값을 입력해주세요.', 'err'); return; }
+
+  const target = Object.entries(allStudents).filter(([k,s])=>{
+    if (grade && String(s.학년)!==grade) return false;
+    if (cls   && s.반!==cls) return false;
+    return true;
+  });
+  if (!confirm(`${target.length}명의 예약 횟수를 ${val}회로 변경하시겠습니까?`)) return;
+
+  try {
+    // 개별 경로에 set() → students/{key}/예약횟수 권한만 필요
+    await Promise.all(target.map(([key])=> {
+      allStudents[key].예약횟수 = val;
+      return db.ref(`students/${key}/예약횟수`).set(val);
+    }));
+    toast(`${target.length}명 일괄 변경 완료 (${val}회)`, 'ok');
+    renderStudents();
+  } catch(e) { toast('일괄 변경 실패: '+e.message, 'err'); }
+}
+
+// ════════════════════════════════════════════════
+// 엑셀 다운로드 (CSV → .xlsx 아이콘으로 열림)
+// ════════════════════════════════════════════════
+function downloadExcel() {
+  const grade  = document.getElementById('rv-grade').value;
+  const cls    = document.getElementById('rv-class').value;
+  const search = (document.getElementById('rv-search').value||'').trim().toLowerCase();
+
+  let list = Object.values(allReservations);
+  if (grade)  list = list.filter(r=>String(r.학년)===grade);
+  if (cls)    list = list.filter(r=>r.반===cls);
+  if (search) list = list.filter(r=>
+    (r.학생||'').toLowerCase().includes(search)||
+    (r.교사||'').toLowerCase().includes(search)
+  );
+  list.sort((a,b)=>{
+    const ga = Number(a.학년)||0, gb = Number(b.학년)||0;
+    if (ga!==gb) return ga-gb;
+    if ((a.반||'')!==(b.반||'')) return (a.반||'').localeCompare(b.반||'');
+    return (a.시간||'').localeCompare(b.시간||'');
+  });
+
+  if (!list.length) { toast('다운로드할 예약 데이터가 없습니다.', 'warn'); return; }
+
+  // BOM + CSV 생성 (한글 엑셀 호환)
+  const headers = ['학생','학년','반','교사','과목','시간','예약시간'];
+  const rows = list.map(r => [
+    r.학생||'',
+    r.학년||'',
+    r.반||'',
+    r.교사||'',
+    r.과목||'',
+    r.시간||'',
+    r.예약시간 ? new Date(r.예약시간).toLocaleString('ko-KR') : ''
+  ]);
+
+  const csvContent = [headers, ...rows]
+    .map(row => row.map(cell => `"${String(cell).replace(/"/g,'""')}"`).join(','))
+    .join('\r\n');
+
+  const bom = '\uFEFF';
+  const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  const now  = new Date().toLocaleDateString('ko-KR').replace(/\. /g,'-').replace('.','');
+  a.href     = url;
+  a.download = `HIS_PTC_예약현황_${now}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast(`${list.length}건 엑셀 다운로드 완료`, 'ok');
+}
+
+// ════════════════════════════════════════════════
+// 예약 기간 설정
+// ════════════════════════════════════════════════
+async function loadSettings() {
+  try {
+    const snap = await db.ref('settings/period').once('value');
+    const p = snap.val();
+    if (p && p.start) document.getElementById('period-start').value = toLocalDT(p.start);
+    if (p && p.end)   document.getElementById('period-end').value   = toLocalDT(p.end);
+    updatePeriodStatus(p);
+  } catch(e) { updatePeriodStatus(null); }
+}
+
+function toLocalDT(isoStr) {
+  if (!isoStr) return '';
+  const d = new Date(isoStr);
+  const pad = n => String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function updatePeriodStatus(p) {
+  const el = document.getElementById('period-status');
+  if (!p || !p.start || !p.end) {
+    el.textContent = '⚪ 미설정 (제한 없음)';
+    el.className = 'period-status unset'; return;
+  }
+  const now = Date.now(), s = new Date(p.start).getTime(), e = new Date(p.end).getTime();
+  if (now < s)      { el.textContent = '⏳ 예약 대기중';   el.className = 'period-status waiting'; }
+  else if (now > e) { el.textContent = '🔒 예약 종료됨';   el.className = 'period-status closed';  }
+  else              { el.textContent = '✅ 예약 진행중';   el.className = 'period-status open';    }
+}
+
+async function savePeriod() {
+  const sv = document.getElementById('period-start').value;
+  const ev = document.getElementById('period-end').value;
+  if (!sv || !ev) { toast('시작·종료 시간을 모두 입력해주세요.', 'err'); return; }
+  const s = new Date(sv), e = new Date(ev);
+  if (s >= e) { toast('종료 시간은 시작 시간보다 늦어야 합니다.', 'err'); return; }
+  try {
+    const data = { start: s.toISOString(), end: e.toISOString() };
+    await db.ref('settings/period').set(data);
+    updatePeriodStatus(data);
+    const fmt = d => d.toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+    toast(`예약 기간 저장 완료: ${fmt(s)} ~ ${fmt(e)}`, 'ok');
+  } catch(err) { toast('저장 실패: ' + err.message, 'err'); }
+}
+
+async function clearPeriod() {
+  if (!confirm('예약 기간 제한을 해제하시겠습니까?\n(학생들이 언제든 예약할 수 있게 됩니다)')) return;
+  try {
+    await db.ref('settings/period').remove();
+    document.getElementById('period-start').value = '';
+    document.getElementById('period-end').value   = '';
+    updatePeriodStatus(null);
+    toast('예약 기간 제한이 해제되었습니다.', 'ok');
+  } catch(err) { toast('해제 실패: ' + err.message, 'err'); }
+}
+
+// ── 유틸 ──────────────────────────────────────────
+function toast(msg, type='') {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.className = type;
+  el.classList.add('on'); setTimeout(()=>el.classList.remove('on'), 3500);
+}
+function esc(s){ return String(s).replace(/'/g,"\\'"); }
+</script>
+</body>
+</html>
