@@ -102,7 +102,20 @@ tr:hover td{background:#FAFBFF}
 .edit-input:focus{border-color:var(--nv2)}
 .edit-input.num{width:65px;text-align:center}
 
-/* ── 학생 명단 탭 ── */
+/* ── CSV 업로드 바 ── */
+.upload-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 20px;background:#F8F9FF;border-bottom:1px solid var(--bd)}
+.btn-upload{padding:7px 14px;border-radius:8px;font-size:13px;font-weight:700;border:1.5px solid var(--bd);background:#fff;color:var(--sb);cursor:pointer;transition:all .13s;display:inline-flex;align-items:center;gap:5px}
+.btn-upload:hover{border-color:var(--nv2);color:var(--nv)}
+.btn-upload.export{background:var(--gnb);border-color:#86EFAC;color:var(--gn)}
+.upload-tip{font-size:11px;color:var(--sb)}
+input[type=file].hidden-file{display:none}
+
+/* ── 비밀번호 변경 패널 ── */
+.pw-change-wrap{background:var(--bg);border:1.5px solid var(--bd);border-radius:12px;padding:16px 18px;margin-bottom:16px;display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap}
+.pw-change-wrap .af-group{display:flex;flex-direction:column;gap:4px}
+.pw-change-wrap label{font-size:11px;font-weight:800;color:var(--sb)}
+.pw-change-wrap input{padding:8px 10px;border:1.5px solid var(--bd);border-radius:8px;font-size:14px;font-family:inherit;outline:none;transition:border-color .2s}
+.pw-change-wrap input:focus{border-color:var(--nv2)}
 .stu-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
 .stu-toolbar input{flex:1;min-width:140px;padding:8px 12px;border:1.5px solid var(--bd);border-radius:8px;font-size:14px;font-family:inherit;outline:none;transition:border-color .2s}
 .stu-toolbar input:focus{border-color:var(--nv2)}
@@ -315,6 +328,13 @@ tr:hover td{background:#FAFBFF}
 
   <!-- ── 탭1: 교사 시간 ── -->
   <div id="tab-timeslots" class="content">
+    <!-- CSV 업로드 바 -->
+    <div class="upload-bar">
+      <button class="btn-upload" onclick="document.getElementById('ts-csv-input').click()">📂 타임슬롯 CSV 업로드</button>
+      <input type="file" id="ts-csv-input" class="hidden-file" accept=".csv,.txt" onchange="uploadTimeslotCSV(this)">
+      <button class="btn-upload export" onclick="exportTimeslotCSV()">⬇️ 내보내기</button>
+      <span class="upload-tip">형식: 교사이름,10:00-10:10|10:15-10:25|... (행 하나=교사 1명)</span>
+    </div>
     <div class="filter-bar">
       <input class="flex1" type="text" id="ts-search" placeholder="🔍 교사 이름 검색" oninput="renderTimeslots()">
     </div>
@@ -396,11 +416,31 @@ tr:hover td{background:#FAFBFF}
 
   <!-- ── 탭4: 예약 횟수 ── -->
   <div id="tab-students" class="content" style="display:none">
+    <!-- 관리자 비밀번호 변경 -->
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-title">🔐 관리자 비밀번호 변경</div>
+      <div class="pw-change-wrap">
+        <div class="af-group">
+          <label>현재 비밀번호</label>
+          <input type="password" id="pw-old" placeholder="현재 비밀번호">
+        </div>
+        <div class="af-group">
+          <label>새 비밀번호</label>
+          <input type="password" id="pw-new" placeholder="새 비밀번호">
+        </div>
+        <div class="af-group">
+          <label>새 비밀번호 확인</label>
+          <input type="password" id="pw-new2" placeholder="다시 입력">
+        </div>
+        <button class="btn-add-stu" onclick="changeAdminPw()">변경</button>
+      </div>
+    </div>
+
     <div class="filter-bar">
       <select id="st-grade" onchange="renderStudents()">
         <option value="">전체 학년</option>
-        <option>7</option><option>8</option><option>9</option>
-        <option>10</option><option>11</option><option>12</option>
+        <option>1</option><option>2</option><option>3</option>
+        <option>4</option><option>5</option><option>6</option>
       </select>
       <select id="st-class" onchange="renderStudents()">
         <option value="">전체 반</option>
@@ -456,7 +496,8 @@ tr:hover td{background:#FAFBFF}
     </div>
     <div class="form-row">
       <label>교사 이름</label>
-      <input type="text" id="m-teacher" placeholder="예: 이주일">
+      <input type="text" id="m-teacher" placeholder="교사 이름 입력 또는 선택" list="teacher-datalist" autocomplete="off">
+      <datalist id="teacher-datalist"></datalist>
     </div>
     <div id="add-student-row" class="form-row" style="display:none">
       <label>학생 이름 <span style="color:var(--sb);font-weight:400">(쉼표로 여러명: 김철수,이영희)</span></label>
@@ -486,21 +527,43 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-const ADMIN_PW = '1751';
+const DEFAULT_PW = '1751';
+let ADMIN_PW = DEFAULT_PW;
 let allTimeslots = {}, allReservations = {}, allStudents = {}, allSubjects = {};
 
-// ── 로그인 ──────────────────────────────────────
-function checkAdmin() {
+// ── 관리자 PW Firebase 로드 ───────────────────────
+async function loadAdminPw() {
+  try {
+    const snap = await db.ref('settings/adminPw').once('value');
+    if (snap.val()) ADMIN_PW = snap.val();
+  } catch(e) {}
+}
+
+// ── 로그인 (localStorage 유지) ────────────────────
+async function checkAdmin() {
+  await loadAdminPw();
   const pw = document.getElementById('admin-pw').value;
   if (pw !== ADMIN_PW) { toast('비밀번호가 올바르지 않습니다.', 'err'); document.getElementById('admin-pw').value=''; return; }
+  localStorage.setItem('his_admin_es', '1');
+  showAdminScreen();
+}
+function adminLogout() {
+  localStorage.removeItem('his_admin_es');
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('admin-screen').style.display = 'none';
+  document.getElementById('admin-pw').value = '';
+}
+async function showAdminScreen() {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('admin-screen').style.display = 'block';
   loadAll();
 }
-function adminLogout() {
-  document.getElementById('login-screen').style.display = 'flex';
-  document.getElementById('admin-screen').style.display = 'none';
-  document.getElementById('admin-pw').value = '';
+// ── 페이지 로드 시 자동 로그인 복원 ─────────────────
+async function initAdmin() {
+  await loadAdminPw();
+  if (localStorage.getItem('his_admin_es') === '1') {
+    showAdminScreen();
+  }
 }
 
 // ── 데이터 로드 ──────────────────────────────────
@@ -521,7 +584,7 @@ async function loadAll() {
   } catch(e) { console.error(e); toast('데이터 로드 실패', 'err'); }
 }
 function refreshAll() { loadAll().then(() => toast('새로고침 완료', 'ok')); }
-function renderAll()  { renderTimeslots(); renderSubjects(); renderReservations(); renderStudents(); }
+function renderAll()  { renderTimeslots(); renderSubjects(); renderReservations(); renderStudents(); refreshTeacherDatalist(); }
 
 // ── 탭 전환 ──────────────────────────────────────
 const TABS = ['timeslots','subjects','reservations','students','stulist'];
@@ -1294,6 +1357,87 @@ function exportCSV() {
   URL.revokeObjectURL(url);
 }
 
+// ════════════════════════════════════════════════
+// 교사 드롭다운 갱신
+// ════════════════════════════════════════════════
+function refreshTeacherDatalist() {
+  const names = [...new Set(Object.values(allTimeslots).map(s => s.교사).filter(Boolean))].sort();
+  const dl = document.getElementById('teacher-datalist');
+  if (dl) dl.innerHTML = names.map(n => `<option value="${n}">`).join('');
+}
+
+// ════════════════════════════════════════════════
+// 타임슬롯 CSV 업로드 / 내보내기
+// ════════════════════════════════════════════════
+function uploadTimeslotCSV(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async e => {
+    const lines = e.target.result.split('\n').map(l => l.trim()).filter(Boolean);
+    const updates = {}, errors = [];
+    let slotCount = 0;
+    lines.forEach((line, i) => {
+      const commaIdx = line.indexOf(',');
+      if (commaIdx < 0) { errors.push(`${i+1}행 형식 오류`); return; }
+      const teacher = line.slice(0, commaIdx).trim();
+      const times   = line.slice(commaIdx+1).split('|').map(t => t.trim()).filter(Boolean);
+      if (!teacher || !times.length) { errors.push(`${i+1}행 데이터 없음`); return; }
+      times.forEach((time, j) => {
+        const key = `${teacher}_SL${String(j+1).padStart(3,'0')}`;
+        updates[`timeslots/${key}`] = { 교사: teacher, 시간: time, 예약완료: '' };
+        slotCount++;
+      });
+    });
+    if (errors.length) { console.error(errors); toast(`⚠️ ${errors.length}행 오류`, 'err'); }
+    if (!Object.keys(updates).length) { toast('업로드할 데이터가 없습니다.', 'err'); return; }
+    if (!confirm(`${lines.length - errors.length}명 교사, ${slotCount}개 슬롯 업로드. 기존 슬롯을 덮어씁니다. 계속하시겠습니까?`)) { input.value=''; return; }
+    try {
+      await db.ref().update(updates);
+      toast(`✅ ${slotCount}개 타임슬롯 업로드 완료!`, 'ok');
+      await loadAll();
+    } catch(err) { toast('업로드 실패: ' + err.message, 'err'); }
+    input.value = '';
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+function exportTimeslotCSV() {
+  if (!Object.keys(allTimeslots).length) { toast('내보낼 데이터가 없습니다.', 'err'); return; }
+  const map = {};
+  Object.values(allTimeslots).forEach(s => {
+    if (!s.교사||!s.시간) return;
+    if (!map[s.교사]) map[s.교사] = [];
+    map[s.교사].push(s.시간);
+  });
+  const rows = Object.entries(map).sort(([a],[b])=>a.localeCompare(b))
+    .map(([t,times])=>`${t},${times.join('|')}`);
+  const blob = new Blob(['\uFEFF'+rows.join('\n')], {type:'text/csv;charset=utf-8;'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a'); a.href=url; a.download='timeslots.csv'; a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ════════════════════════════════════════════════
+// 관리자 비밀번호 변경
+// ════════════════════════════════════════════════
+async function changeAdminPw() {
+  const old  = document.getElementById('pw-old').value;
+  const nw   = document.getElementById('pw-new').value;
+  const nw2  = document.getElementById('pw-new2').value;
+  if (old !== ADMIN_PW)    { toast('현재 비밀번호가 올바르지 않습니다.', 'err'); return; }
+  if (!nw)                  { toast('새 비밀번호를 입력해주세요.', 'err'); return; }
+  if (nw !== nw2)           { toast('새 비밀번호가 일치하지 않습니다.', 'err'); return; }
+  try {
+    await db.ref('settings/adminPw').set(nw);
+    ADMIN_PW = nw;
+    document.getElementById('pw-old').value  = '';
+    document.getElementById('pw-new').value  = '';
+    document.getElementById('pw-new2').value = '';
+    toast('관리자 비밀번호가 변경되었습니다. ✅', 'ok');
+  } catch(err) { toast('저장 실패: ' + err.message, 'err'); }
+}
+
 // ── 유틸 ──────────────────────────────────────────
 function toast(msg, type='') {
   const el = document.getElementById('toast');
@@ -1301,6 +1445,8 @@ function toast(msg, type='') {
   el.classList.add('on'); setTimeout(()=>el.classList.remove('on'), 3500);
 }
 function esc(s){ return String(s).replace(/'/g,"\\'"); }
+
+initAdmin();
 </script>
 </body>
 </html>
