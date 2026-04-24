@@ -110,7 +110,28 @@ tr:hover td{background:#FAFBFF}
 .upload-tip{font-size:11px;color:var(--sb)}
 input[type=file].hidden-file{display:none}
 
-/* ── 엑셀 붙여넣기 영역 ── */
+/* ── 접기/펼치기 툴바 ── */
+.tool-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 20px;background:#F8F9FF;border-bottom:1px solid var(--bd)}
+.btn-toggle-paste{padding:7px 14px;border-radius:8px;font-size:13px;font-weight:700;border:1.5px solid var(--bd);background:#fff;color:var(--sb);cursor:pointer;transition:all .13s;display:inline-flex;align-items:center;gap:5px}
+.btn-toggle-paste.on{background:#EEF2FF;border-color:#C7D2FE;color:var(--nv2)}
+.btn-toggle-paste:hover{border-color:var(--nv2);color:var(--nv2)}
+.paste-collapse{padding:14px 20px;border-bottom:1px solid var(--bd);background:#fff;display:none}
+.paste-collapse.on{display:block}
+
+/* ── 비밀번호 팝업 모달 ── */
+#pw-modal-overlay{position:fixed;inset:0;z-index:600;background:rgba(8,18,60,.55);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:16px}
+#pw-modal-overlay.on{display:flex}
+.pw-modal-box{background:#fff;border-radius:var(--rlg);padding:28px 24px;width:100%;max-width:400px;box-shadow:var(--shh);animation:fadeUp .25s cubic-bezier(.16,1,.3,1)}
+.pw-modal-box h2{font-size:17px;font-weight:800;color:var(--nv);margin-bottom:18px;display:flex;align-items:center;gap:8px}
+.pw-modal-row{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
+.pw-modal-row label{font-size:11px;font-weight:800;color:var(--sb)}
+.pw-modal-row input{padding:10px 12px;border:1.5px solid var(--bd);border-radius:8px;font-size:14px;font-family:inherit;outline:none;transition:border-color .2s}
+.pw-modal-row input:focus{border-color:var(--nv2)}
+.pw-modal-btns{display:flex;gap:8px;margin-top:18px}
+.btn-pw-save{flex:2;padding:11px;background:linear-gradient(135deg,var(--nv),var(--nv2));color:#fff;border-radius:9px;font-size:14px;font-weight:800}
+.btn-pw-cancel{flex:1;padding:11px;background:var(--bg);border-radius:9px;font-size:14px;font-weight:700;color:var(--sb)}
+.btn-chgpw{padding:8px 14px;border-radius:9px;font-size:13px;font-weight:700;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.15);color:rgba(255,255,255,.9);transition:background .14s;display:inline-flex;align-items:center;gap:5px}
+.btn-chgpw:hover{background:rgba(255,255,255,.25)}
 .paste-section{background:#fff;border:1.5px solid var(--bd);border-radius:12px;padding:14px 16px;margin-bottom:14px}
 .paste-section .ps-head{font-size:12px;font-weight:800;color:var(--nv);margin-bottom:6px;display:flex;align-items:center;gap:6px}
 .paste-section .ps-hint{font-size:11px;color:var(--sb);margin-bottom:8px;line-height:1.6}
@@ -243,8 +264,32 @@ input[type=file].hidden-file{display:none}
       <p>Handong International School 2026</p>
     </div>
     <div class="top-btns">
+      <button class="btn-chgpw" onclick="openPwModal()">🔐 비밀번호</button>
       <button class="tbtn" onclick="refreshAll()">🔄 새로고침</button>
       <button class="tbtn" onclick="adminLogout()">로그아웃</button>
+    </div>
+  </div>
+
+  <!-- 비밀번호 변경 팝업 -->
+  <div id="pw-modal-overlay" onclick="if(event.target===this)closePwModal()">
+    <div class="pw-modal-box">
+      <h2>🔐 관리자 비밀번호 변경</h2>
+      <div class="pw-modal-row">
+        <label>현재 비밀번호</label>
+        <input type="password" id="pw-old" placeholder="현재 비밀번호">
+      </div>
+      <div class="pw-modal-row">
+        <label>새 비밀번호</label>
+        <input type="password" id="pw-new" placeholder="새 비밀번호">
+      </div>
+      <div class="pw-modal-row">
+        <label>새 비밀번호 확인</label>
+        <input type="password" id="pw-new2" placeholder="다시 입력" onkeydown="if(event.key==='Enter')changeAdminPw()">
+      </div>
+      <div class="pw-modal-btns">
+        <button class="btn-pw-cancel" onclick="closePwModal()">취소</button>
+        <button class="btn-pw-save" onclick="changeAdminPw()">변경</button>
+      </div>
     </div>
   </div>
 
@@ -280,15 +325,21 @@ input[type=file].hidden-file{display:none}
   <!-- ── 탭5: 학생 명단 ── -->
   <div id="tab-stulist" class="content" style="display:none">
 
-    <!-- 엑셀 붙여넣기 -->
-    <div class="paste-section">
-      <div class="ps-head">📋 엑셀 붙여넣기로 일괄 추가</div>
-      <div class="ps-hint">
-        엑셀에서 복사 후 아래 영역에 붙여넣기 (Ctrl+V)<br>
+    <!-- 툴바: 엑셀 붙여넣기 토글 + CSV -->
+    <div class="tool-bar">
+      <button class="btn-toggle-paste" id="stu-paste-toggle" onclick="togglePaste('stu')">📋 엑셀 붙여넣기 ▾</button>
+      <button class="btn-upload" onclick="document.getElementById('csv-file-input').click()">📂 CSV 업로드</button>
+      <input type="file" id="csv-file-input" accept=".csv,.txt" onchange="uploadCSV(this)">
+      <button class="btn-upload export" onclick="exportCSV()">⬇️ CSV 내보내기</button>
+      <span class="upload-tip">CSV: 학년,이름,비밀번호</span>
+    </div>
+    <!-- 접기/펼치기 붙여넣기 영역 -->
+    <div class="paste-collapse" id="stu-paste-area">
+      <div class="ps-hint" style="margin-bottom:8px">
         열 구성: <code>학년</code> <code>이름</code> <code>비밀번호</code> — 탭으로 구분, 헤더 없이<br>
-        예) <code>1	김철수	010101</code>
+        예) <code>1  김철수  010101</code>
       </div>
-      <textarea class="paste-ta" id="stu-paste-ta" placeholder="엑셀 데이터를 붙여넣으세요 (Ctrl+V)&#10;예) 1	김철수	010101&#10;    2	이영희	020202" oninput="previewStuPaste()"></textarea>
+      <textarea class="paste-ta" id="stu-paste-ta" placeholder="엑셀 데이터를 붙여넣으세요 (Ctrl+V)" oninput="previewStuPaste()"></textarea>
       <div class="paste-preview" id="stu-paste-preview"></div>
       <div class="paste-btns">
         <button class="btn-paste-add" onclick="pasteAddStudents()">📥 명단 추가</button>
@@ -318,14 +369,6 @@ input[type=file].hidden-file{display:none}
         <input type="text" id="af-pw" placeholder="생년월일" maxlength="8">
       </div>
       <button class="btn-add-stu" onclick="addStudent()">➕ 추가</button>
-    </div>
-
-    <!-- CSV 업로드/내보내기 -->
-    <div class="csv-row">
-      <button class="btn-csv" onclick="document.getElementById('csv-file-input').click()">📂 CSV 업로드</button>
-      <input type="file" id="csv-file-input" accept=".csv,.txt" onchange="uploadCSV(this)">
-      <button class="btn-csv export" onclick="exportCSV()">⬇️ CSV 내보내기</button>
-      <span class="csv-tip">CSV 형식: 학년,이름,비밀번호 (헤더 없이)</span>
     </div>
 
     <!-- 학년 필터 -->
@@ -358,26 +401,24 @@ input[type=file].hidden-file{display:none}
 
   <!-- ── 탭1: 교사 시간 ── -->
   <div id="tab-timeslots" class="content">
-    <!-- 엑셀 붙여넣기 -->
-    <div class="paste-section" style="margin:14px 20px 0">
-      <div class="ps-head">📋 엑셀 붙여넣기로 일괄 등록</div>
-      <div class="ps-hint">
-        엑셀에서 복사 후 아래 영역에 붙여넣기 (Ctrl+V)<br>
+    <div class="tool-bar">
+      <button class="btn-toggle-paste" id="ts-paste-toggle" onclick="togglePaste('ts')">📋 엑셀 붙여넣기 ▾</button>
+      <button class="btn-upload" onclick="document.getElementById('ts-csv-input').click()">📂 CSV 업로드</button>
+      <input type="file" id="ts-csv-input" class="hidden-file" accept=".csv,.txt" onchange="uploadTimeslotCSV(this)">
+      <button class="btn-upload export" onclick="exportTimeslotCSV()">⬇️ 내보내기</button>
+      <span class="upload-tip">CSV: 교사이름,10:00-10:10|10:15-10:25|...</span>
+    </div>
+    <div class="paste-collapse" id="ts-paste-area">
+      <div class="ps-hint" style="margin-bottom:8px">
         열 구성: <code>교사이름</code> <code>시간1</code> <code>시간2</code> <code>시간3</code> … — 탭으로 구분, 행 하나=교사 1명<br>
-        예) <code>Adam	10:00-10:10	10:15-10:25	10:30-10:40</code>
+        예) <code>Adam  10:00-10:10  10:15-10:25  10:30-10:40</code>
       </div>
-      <textarea class="paste-ta" id="ts-paste-ta" placeholder="엑셀 데이터를 붙여넣으세요 (Ctrl+V)&#10;예) Adam	10:00-10:10	10:15-10:25	11:00-11:10&#10;    김민정	10:00-10:10	10:15-10:25" oninput="previewTsPaste()"></textarea>
+      <textarea class="paste-ta" id="ts-paste-ta" placeholder="엑셀 데이터를 붙여넣으세요 (Ctrl+V)" oninput="previewTsPaste()"></textarea>
       <div class="paste-preview" id="ts-paste-preview"></div>
       <div class="paste-btns">
         <button class="btn-paste-add" onclick="pasteAddTimeslots()">📥 타임슬롯 추가</button>
         <button class="btn-paste-clear" onclick="document.getElementById('ts-paste-ta').value='';document.getElementById('ts-paste-preview').textContent=''">지우기</button>
       </div>
-    </div>
-    <div class="upload-bar">
-      <button class="btn-upload" onclick="document.getElementById('ts-csv-input').click()">📂 타임슬롯 CSV 업로드</button>
-      <input type="file" id="ts-csv-input" class="hidden-file" accept=".csv,.txt" onchange="uploadTimeslotCSV(this)">
-      <button class="btn-upload export" onclick="exportTimeslotCSV()">⬇️ 내보내기</button>
-      <span class="upload-tip">형식: 교사이름,10:00-10:10|10:15-10:25|... (행 하나=교사 1명)</span>
     </div>
     <div class="filter-bar">
       <input class="flex1" type="text" id="ts-search" placeholder="🔍 교사 이름 검색" oninput="renderTimeslots()">
@@ -442,7 +483,7 @@ input[type=file].hidden-file{display:none}
       <div class="card-title">예약 목록
         <div style="display:flex;gap:8px;align-items:center">
           <span class="badge" id="rv-count">0건</span>
-          <button class="btn-save" onclick="downloadExcel()" style="background:linear-gradient(135deg,#15803D,#16a34a)">
+          <button onclick="downloadExcel()" style="padding:8px 16px;background:linear-gradient(135deg,#15803D,#16a34a);color:#fff;border-radius:8px;font-size:13px;font-weight:800;border:none;cursor:pointer;box-shadow:0 2px 8px rgba(21,128,61,.35);display:inline-flex;align-items:center;gap:6px;white-space:nowrap">
             ⬇️ 엑셀 다운로드
           </button>
         </div>
@@ -460,26 +501,6 @@ input[type=file].hidden-file{display:none}
 
   <!-- ── 탭4: 예약 횟수 ── -->
   <div id="tab-students" class="content" style="display:none">
-    <!-- 관리자 비밀번호 변경 -->
-    <div class="card" style="margin-bottom:16px">
-      <div class="card-title">🔐 관리자 비밀번호 변경</div>
-      <div class="pw-change-wrap">
-        <div class="af-group">
-          <label>현재 비밀번호</label>
-          <input type="password" id="pw-old" placeholder="현재 비밀번호">
-        </div>
-        <div class="af-group">
-          <label>새 비밀번호</label>
-          <input type="password" id="pw-new" placeholder="새 비밀번호">
-        </div>
-        <div class="af-group">
-          <label>새 비밀번호 확인</label>
-          <input type="password" id="pw-new2" placeholder="다시 입력">
-        </div>
-        <button class="btn-add-stu" onclick="changeAdminPw()">변경</button>
-      </div>
-    </div>
-
     <div class="filter-bar">
       <select id="st-grade" onchange="renderStudents()">
         <option value="">전체 학년</option>
@@ -660,7 +681,7 @@ function renderTimeslots() {
   if (!teachers.length) { container.innerHTML = '<div class="empty">데이터가 없습니다.</div>'; return; }
 
   container.innerHTML = teachers.map(tc => {
-    const slots  = teacherMap[tc].sort((a,b)=>(a.시간목록||'').localeCompare(b.시간목록||''));
+    const slots  = teacherMap[tc].sort((a,b)=>(a.시간||'').localeCompare(b.시간||''));
     const avail  = slots.filter(s=>s.예약가능===true).length;
     const booked = slots.filter(s=>String(s.예약완료||'').trim()!=='').length;
 
@@ -700,7 +721,7 @@ function renderTimeslots() {
                   <input type="checkbox" class="cb slot-cb_${esc(tc)}" data-key="${s.key}"
                          onchange="updateBulkBar('${esc(tc)}')">
                 </td>
-                <td style="padding:8px 11px;border-bottom:1px solid var(--bg);font-weight:600">${s.시간목록||'-'}</td>
+                <td style="padding:8px 11px;border-bottom:1px solid var(--bg);font-weight:600">${s.시간||'-'}</td>
                 <td style="padding:8px 11px;border-bottom:1px solid var(--bg)">
                   <button class="btn-avail ${isAvail?'on':'off'}" onclick="toggleAvail('${esc(s.key)}','${esc(tc)}',${isAvail})">
                     ${isAvail ? '✅ 가능' : '❌ 불가'}
@@ -748,7 +769,7 @@ async function toggleAvail(key, tc, current) {
     }
     // 헤더 통계 업데이트
     updateTgStats(tc);
-    toast(`${allTimeslots[key]['시간목록']} → ${newVal?'가능':'불가'}`, 'ok');
+    toast(`${allTimeslots[key]['시간']} → ${newVal?'가능':'불가'}`, 'ok');
   } catch(e) { toast('변경 실패', 'err'); }
 }
 
@@ -1399,6 +1420,45 @@ function exportCSV() {
   const a    = document.createElement('a');
   a.href = url; a.download = 'students.csv'; a.click();
   URL.revokeObjectURL(url);
+}
+
+// ── 붙여넣기 접기/펼치기 ─────────────────────────
+function togglePaste(prefix) {
+  const area   = document.getElementById(`${prefix}-paste-area`);
+  const toggle = document.getElementById(`${prefix}-paste-toggle`);
+  const isOn   = area.classList.toggle('on');
+  toggle.classList.toggle('on', isOn);
+  toggle.textContent = isOn ? `📋 엑셀 붙여넣기 ▴` : `📋 엑셀 붙여넣기 ▾`;
+}
+
+// ── 비밀번호 팝업 ─────────────────────────────────
+function openPwModal() {
+  document.getElementById('pw-old').value  = '';
+  document.getElementById('pw-new').value  = '';
+  document.getElementById('pw-new2').value = '';
+  document.getElementById('pw-modal-overlay').classList.add('on');
+  setTimeout(() => document.getElementById('pw-old').focus(), 100);
+}
+function closePwModal() {
+  document.getElementById('pw-modal-overlay').classList.remove('on');
+}
+
+// ════════════════════════════════════════════════
+// 관리자 비밀번호 변경
+// ════════════════════════════════════════════════
+async function changeAdminPw() {
+  const old  = document.getElementById('pw-old').value;
+  const nw   = document.getElementById('pw-new').value;
+  const nw2  = document.getElementById('pw-new2').value;
+  if (old !== ADMIN_PW)    { toast('현재 비밀번호가 올바르지 않습니다.', 'err'); return; }
+  if (!nw)                  { toast('새 비밀번호를 입력해주세요.', 'err'); return; }
+  if (nw !== nw2)           { toast('새 비밀번호가 일치하지 않습니다.', 'err'); return; }
+  try {
+    await db.ref('settings/adminPw').set(nw);
+    ADMIN_PW = nw;
+    closePwModal();
+    toast('관리자 비밀번호가 변경되었습니다. ✅', 'ok');
+  } catch(err) { toast('저장 실패: ' + err.message, 'err'); }
 }
 
 // ════════════════════════════════════════════════
