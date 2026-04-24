@@ -110,7 +110,21 @@ tr:hover td{background:#FAFBFF}
 .upload-tip{font-size:11px;color:var(--sb)}
 input[type=file].hidden-file{display:none}
 
-/* ── 비밀번호 변경 패널 ── */
+/* ── 엑셀 붙여넣기 영역 ── */
+.paste-section{background:#fff;border:1.5px solid var(--bd);border-radius:12px;padding:14px 16px;margin-bottom:14px}
+.paste-section .ps-head{font-size:12px;font-weight:800;color:var(--nv);margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.paste-section .ps-hint{font-size:11px;color:var(--sb);margin-bottom:8px;line-height:1.6}
+.paste-section .ps-hint code{background:var(--bg);border-radius:4px;padding:1px 5px;font-family:monospace;font-size:11px;color:var(--nv2)}
+.paste-ta{width:100%;min-height:90px;padding:10px 12px;border:1.5px solid var(--bd);border-radius:8px;font-size:13px;font-family:monospace;line-height:1.6;resize:vertical;outline:none;transition:border-color .2s;background:#FAFBFF}
+.paste-ta:focus{border-color:var(--nv2);box-shadow:0 0 0 3px rgba(27,47,122,.06)}
+.paste-ta::placeholder{color:#B0BAD0;font-family:'Noto Sans KR',sans-serif;font-size:12px}
+.paste-btns{display:flex;gap:8px;margin-top:10px}
+.btn-paste-add{padding:8px 18px;background:linear-gradient(135deg,var(--nv),var(--nv2));color:#fff;border-radius:8px;font-size:13px;font-weight:800;transition:opacity .14s}
+.btn-paste-add:hover{opacity:.85}
+.btn-paste-clear{padding:8px 14px;background:var(--bg);border:1.5px solid var(--bd);color:var(--sb);border-radius:8px;font-size:13px;font-weight:700;transition:all .13s}
+.btn-paste-clear:hover{border-color:var(--rd);color:var(--rd)}
+.paste-preview{margin-top:10px;font-size:12px;color:var(--gn);font-weight:700}
+.paste-preview.err{color:var(--rd)}
 .pw-change-wrap{background:var(--bg);border:1.5px solid var(--bd);border-radius:12px;padding:16px 18px;margin-bottom:16px;display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap}
 .pw-change-wrap .af-group{display:flex;flex-direction:column;gap:4px}
 .pw-change-wrap label{font-size:11px;font-weight:800;color:var(--sb)}
@@ -266,7 +280,23 @@ input[type=file].hidden-file{display:none}
   <!-- ── 탭5: 학생 명단 ── -->
   <div id="tab-stulist" class="content" style="display:none">
 
-    <!-- 추가 폼 -->
+    <!-- 엑셀 붙여넣기 -->
+    <div class="paste-section">
+      <div class="ps-head">📋 엑셀 붙여넣기로 일괄 추가</div>
+      <div class="ps-hint">
+        엑셀에서 복사 후 아래 영역에 붙여넣기 (Ctrl+V)<br>
+        열 구성: <code>학년</code> <code>이름</code> <code>비밀번호</code> — 탭으로 구분, 헤더 없이<br>
+        예) <code>1	김철수	010101</code>
+      </div>
+      <textarea class="paste-ta" id="stu-paste-ta" placeholder="엑셀 데이터를 붙여넣으세요 (Ctrl+V)&#10;예) 1	김철수	010101&#10;    2	이영희	020202" oninput="previewStuPaste()"></textarea>
+      <div class="paste-preview" id="stu-paste-preview"></div>
+      <div class="paste-btns">
+        <button class="btn-paste-add" onclick="pasteAddStudents()">📥 명단 추가</button>
+        <button class="btn-paste-clear" onclick="document.getElementById('stu-paste-ta').value='';document.getElementById('stu-paste-preview').textContent=''">지우기</button>
+      </div>
+    </div>
+
+    <!-- 개별 추가 폼 -->
     <div class="add-form">
       <div class="af-group">
         <label>학년</label>
@@ -328,7 +358,21 @@ input[type=file].hidden-file{display:none}
 
   <!-- ── 탭1: 교사 시간 ── -->
   <div id="tab-timeslots" class="content">
-    <!-- CSV 업로드 바 -->
+    <!-- 엑셀 붙여넣기 -->
+    <div class="paste-section" style="margin:14px 20px 0">
+      <div class="ps-head">📋 엑셀 붙여넣기로 일괄 등록</div>
+      <div class="ps-hint">
+        엑셀에서 복사 후 아래 영역에 붙여넣기 (Ctrl+V)<br>
+        열 구성: <code>교사이름</code> <code>시간1</code> <code>시간2</code> <code>시간3</code> … — 탭으로 구분, 행 하나=교사 1명<br>
+        예) <code>Adam	10:00-10:10	10:15-10:25	10:30-10:40</code>
+      </div>
+      <textarea class="paste-ta" id="ts-paste-ta" placeholder="엑셀 데이터를 붙여넣으세요 (Ctrl+V)&#10;예) Adam	10:00-10:10	10:15-10:25	11:00-11:10&#10;    김민정	10:00-10:10	10:15-10:25" oninput="previewTsPaste()"></textarea>
+      <div class="paste-preview" id="ts-paste-preview"></div>
+      <div class="paste-btns">
+        <button class="btn-paste-add" onclick="pasteAddTimeslots()">📥 타임슬롯 추가</button>
+        <button class="btn-paste-clear" onclick="document.getElementById('ts-paste-ta').value='';document.getElementById('ts-paste-preview').textContent=''">지우기</button>
+      </div>
+    </div>
     <div class="upload-bar">
       <button class="btn-upload" onclick="document.getElementById('ts-csv-input').click()">📂 타임슬롯 CSV 업로드</button>
       <input type="file" id="ts-csv-input" class="hidden-file" accept=".csv,.txt" onchange="uploadTimeslotCSV(this)">
@@ -1355,6 +1399,108 @@ function exportCSV() {
   const a    = document.createElement('a');
   a.href = url; a.download = 'students.csv'; a.click();
   URL.revokeObjectURL(url);
+}
+
+// ════════════════════════════════════════════════
+// 엑셀 붙여넣기 — 학생 명단
+// ════════════════════════════════════════════════
+function parseStuPaste() {
+  const raw = document.getElementById('stu-paste-ta').value.trim();
+  if (!raw) return { rows: [], errors: [] };
+  const rows = [], errors = [];
+  raw.split('\n').forEach((line, i) => {
+    const cols = line.split('\t').map(c => c.trim());
+    const [grade, name, pw] = cols;
+    if (!grade && !name && !pw) return; // 빈 줄 무시
+    if (!grade || !name || !pw) { errors.push(`${i+1}행: 열이 부족합니다 → "${line}"`); return; }
+    if (!/^[1-6]$/.test(grade)) { errors.push(`${i+1}행: 학년은 1~6이어야 합니다 → "${grade}"`); return; }
+    rows.push({ grade, name, pw });
+  });
+  return { rows, errors };
+}
+
+function previewStuPaste() {
+  const { rows, errors } = parseStuPaste();
+  const el = document.getElementById('stu-paste-preview');
+  if (!rows.length && !errors.length) { el.textContent = ''; return; }
+  const parts = [];
+  if (rows.length)   parts.push(`✅ ${rows.length}명 인식됨`);
+  if (errors.length) parts.push(`⚠️ ${errors.length}행 오류`);
+  el.textContent = parts.join('  |  ');
+  el.className = 'paste-preview' + (errors.length ? ' err' : '');
+}
+
+async function pasteAddStudents() {
+  const { rows, errors } = parseStuPaste();
+  if (errors.length) { toast(`${errors.length}개 오류가 있습니다. 콘솔을 확인하세요.`, 'err'); console.error(errors); }
+  if (!rows.length) { toast('추가할 학생이 없습니다.', 'err'); return; }
+  if (!confirm(`${rows.length}명을 추가하시겠습니까?\n(동일 키는 덮어씁니다)`)) return;
+
+  const updates = {};
+  rows.forEach(({ grade, name, pw }) => {
+    const key = `${grade}_A_${name}`;
+    updates[`students/${key}`] = { 학년: Number(grade), 반: 'A', 이름: name, 비밀번호: pw, 예약횟수: 5 };
+  });
+  try {
+    await db.ref().update(updates);
+    toast(`✅ ${rows.length}명 추가 완료!`, 'ok');
+    document.getElementById('stu-paste-ta').value = '';
+    document.getElementById('stu-paste-preview').textContent = '';
+    await loadStuList();
+  } catch(e) { toast('추가 실패: ' + e.message, 'err'); }
+}
+
+// ════════════════════════════════════════════════
+// 엑셀 붙여넣기 — 타임슬롯
+// ════════════════════════════════════════════════
+function parseTsPaste() {
+  const raw = document.getElementById('ts-paste-ta').value.trim();
+  if (!raw) return { teachers: [], totalSlots: 0, errors: [] };
+  const teachers = [], errors = [];
+  let totalSlots = 0;
+  raw.split('\n').forEach((line, i) => {
+    const cols = line.split('\t').map(c => c.trim()).filter(Boolean);
+    if (!cols.length) return;
+    const [teacher, ...times] = cols;
+    if (!teacher) { errors.push(`${i+1}행: 교사 이름 없음`); return; }
+    if (!times.length) { errors.push(`${i+1}행: 시간 없음 → "${teacher}"`); return; }
+    teachers.push({ teacher, times });
+    totalSlots += times.length;
+  });
+  return { teachers, totalSlots, errors };
+}
+
+function previewTsPaste() {
+  const { teachers, totalSlots, errors } = parseTsPaste();
+  const el = document.getElementById('ts-paste-preview');
+  if (!teachers.length && !errors.length) { el.textContent = ''; return; }
+  const parts = [];
+  if (teachers.length) parts.push(`✅ 교사 ${teachers.length}명, 슬롯 ${totalSlots}개 인식됨`);
+  if (errors.length)   parts.push(`⚠️ ${errors.length}행 오류`);
+  el.textContent = parts.join('  |  ');
+  el.className = 'paste-preview' + (errors.length ? ' err' : '');
+}
+
+async function pasteAddTimeslots() {
+  const { teachers, totalSlots, errors } = parseTsPaste();
+  if (errors.length) { toast(`${errors.length}개 오류 (콘솔 확인)`, 'err'); console.error(errors); }
+  if (!teachers.length) { toast('추가할 타임슬롯이 없습니다.', 'err'); return; }
+  if (!confirm(`교사 ${teachers.length}명, 총 ${totalSlots}개 슬롯을 추가합니다.\n동일 키는 덮어씁니다. 계속하시겠습니까?`)) return;
+
+  const updates = {};
+  teachers.forEach(({ teacher, times }) => {
+    times.forEach((time, j) => {
+      const key = `${teacher}_SL${String(j+1).padStart(3,'0')}`;
+      updates[`timeslots/${key}`] = { 교사: teacher, 시간: time, 예약완료: '' };
+    });
+  });
+  try {
+    await db.ref().update(updates);
+    toast(`✅ ${totalSlots}개 타임슬롯 추가 완료!`, 'ok');
+    document.getElementById('ts-paste-ta').value = '';
+    document.getElementById('ts-paste-preview').textContent = '';
+    await loadAll();
+  } catch(e) { toast('추가 실패: ' + e.message, 'err'); }
 }
 
 // ════════════════════════════════════════════════
