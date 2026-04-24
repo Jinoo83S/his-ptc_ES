@@ -79,13 +79,7 @@ input,select,textarea{font-family:inherit}
 
 /* ── 테이블 ── */
 .tbl-wrap{overflow-x:auto}
-/* ── CSV 업로드 바 ── */
-.upload-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 20px;background:#F8F9FF;border-bottom:1px solid var(--bd)}
-.btn-upload{padding:7px 14px;border-radius:8px;font-size:13px;font-weight:700;border:1.5px solid var(--bd);background:#fff;color:var(--sb);cursor:pointer;transition:all .13s;display:inline-flex;align-items:center;gap:5px}
-.btn-upload:hover{border-color:var(--nv2);color:var(--nv)}
-.btn-upload.export{background:var(--gnb);border-color:#86EFAC;color:var(--gn)}
-.upload-tip{font-size:11px;color:var(--sb)}
-input[type=file].hidden-file{display:none}
+table{width:100%;border-collapse:collapse;font-size:14px}
 th{background:var(--bg);padding:9px 11px;text-align:left;font-size:12px;font-weight:800;color:var(--sb);letter-spacing:.3px;border-bottom:1px solid var(--bd)}
 td{padding:9px 11px;border-bottom:1px solid var(--bg);vertical-align:middle}
 tr:last-child td{border-bottom:none}
@@ -108,7 +102,41 @@ tr:hover td{background:#FAFBFF}
 .edit-input:focus{border-color:var(--nv2)}
 .edit-input.num{width:65px;text-align:center}
 
-/* ── 교사 그룹 (타임슬롯 탭) ── */
+/* ── 학생 명단 탭 ── */
+.stu-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+.stu-toolbar input{flex:1;min-width:140px;padding:8px 12px;border:1.5px solid var(--bd);border-radius:8px;font-size:14px;font-family:inherit;outline:none;transition:border-color .2s}
+.stu-toolbar input:focus{border-color:var(--nv2)}
+.grade-filter{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.gf-btn{padding:6px 13px;border-radius:8px;font-size:13px;font-weight:700;background:var(--bg);border:1.5px solid var(--bd);color:var(--sb);cursor:pointer;transition:all .13s}
+.gf-btn:hover{border-color:var(--nv2);color:var(--nv)}
+.gf-btn.on{background:var(--nv);border-color:var(--nv);color:#fff}
+.add-form{background:var(--bg);border:1.5px solid var(--bd);border-radius:12px;padding:14px 16px;margin-bottom:16px;display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end}
+.add-form .af-group{display:flex;flex-direction:column;gap:4px}
+.add-form label{font-size:11px;font-weight:800;color:var(--sb)}
+.add-form input,.add-form select{padding:8px 10px;border:1.5px solid var(--bd);border-radius:8px;font-size:14px;font-family:inherit;outline:none;background:#fff;transition:border-color .2s}
+.add-form input:focus,.add-form select:focus{border-color:var(--nv2)}
+.btn-add-stu{padding:9px 18px;background:linear-gradient(135deg,var(--nv),var(--nv2));color:#fff;border-radius:8px;font-size:13px;font-weight:800;white-space:nowrap;transition:opacity .14s;align-self:flex-end}
+.btn-add-stu:hover{opacity:.85}
+.csv-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center}
+.btn-csv{padding:8px 14px;border-radius:8px;font-size:13px;font-weight:700;border:1.5px solid var(--bd);background:#fff;color:var(--sb);cursor:pointer;transition:all .13s;display:inline-flex;align-items:center;gap:5px}
+.btn-csv:hover{border-color:var(--nv2);color:var(--nv)}
+.btn-csv.export{background:var(--gnb);border-color:#86EFAC;color:var(--gn)}
+#csv-file-input{display:none}
+.stu-table-wrap{overflow-x:auto;border-radius:10px;border:1px solid var(--bd)}
+.stu-table{width:100%;border-collapse:collapse;font-size:14px}
+.stu-table th{background:var(--nv);color:#fff;padding:10px 12px;text-align:left;font-size:12px;font-weight:700;white-space:nowrap}
+.stu-table td{padding:9px 12px;border-bottom:1px solid var(--bd);vertical-align:middle}
+.stu-table tr:last-child td{border-bottom:none}
+.stu-table tr:hover td{background:#F5F7FF}
+.stu-table td.td-pw{color:var(--sb);font-family:monospace;font-size:13px}
+.stu-table td input{padding:5px 8px;border:1.5px solid var(--nv2);border-radius:6px;font-size:13px;font-family:inherit;width:100%;outline:none;background:#fff}
+.btn-edit{padding:5px 11px;border-radius:6px;font-size:12px;font-weight:700;background:#EEF2FF;color:#4338CA;border:1px solid #C7D2FE;cursor:pointer;transition:background .13s}
+.btn-edit:hover{background:#E0E7FF}
+.btn-save{padding:5px 11px;border-radius:6px;font-size:12px;font-weight:700;background:var(--gnb);color:var(--gn);border:1px solid #86EFAC;cursor:pointer}
+.btn-del{padding:5px 10px;border-radius:6px;font-size:12px;font-weight:700;background:var(--rdb);color:var(--rd);border:1px solid #FECACA;cursor:pointer;transition:background .13s;margin-left:4px}
+.btn-del:hover{background:#FEE2E2}
+.stu-count{font-size:13px;color:var(--sb);margin-bottom:10px}
+.csv-tip{font-size:11px;color:var(--sb);margin-left:4px}
 .tg{background:#fff;border-radius:var(--rlg);box-shadow:var(--sh);margin-bottom:10px;overflow:hidden}
 .tg-head{padding:13px 16px;background:linear-gradient(120deg,var(--nv),var(--nv2));display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none}
 .tg-head h3{font-size:14px;font-weight:700;color:#fff}
@@ -198,6 +226,7 @@ tr:hover td{background:#FAFBFF}
     <button class="tab" onclick="switchTab('subjects')">📚 수강과목</button>
     <button class="tab" onclick="switchTab('reservations')">📋 예약 현황</button>
     <button class="tab" onclick="switchTab('students')">👤 예약 횟수</button>
+    <button class="tab" onclick="switchTab('stulist')">📝 학생 명단</button>
   </div>
 
   <!-- ── 예약 기간 설정 배너 ── -->
@@ -221,15 +250,71 @@ tr:hover td{background:#FAFBFF}
     </div>
   </div>
 
+  <!-- ── 탭5: 학생 명단 ── -->
+  <div id="tab-stulist" class="content" style="display:none">
+
+    <!-- 추가 폼 -->
+    <div class="add-form">
+      <div class="af-group">
+        <label>학년</label>
+        <select id="af-grade">
+          <option value="1">1학년</option>
+          <option value="2">2학년</option>
+          <option value="3">3학년</option>
+          <option value="4">4학년</option>
+          <option value="5">5학년</option>
+          <option value="6">6학년</option>
+        </select>
+      </div>
+      <div class="af-group" style="flex:1;min-width:100px">
+        <label>이름</label>
+        <input type="text" id="af-name" placeholder="홍길동">
+      </div>
+      <div class="af-group" style="min-width:110px">
+        <label>비밀번호 (6자리)</label>
+        <input type="text" id="af-pw" placeholder="생년월일" maxlength="8">
+      </div>
+      <button class="btn-add-stu" onclick="addStudent()">➕ 추가</button>
+    </div>
+
+    <!-- CSV 업로드/내보내기 -->
+    <div class="csv-row">
+      <button class="btn-csv" onclick="document.getElementById('csv-file-input').click()">📂 CSV 업로드</button>
+      <input type="file" id="csv-file-input" accept=".csv,.txt" onchange="uploadCSV(this)">
+      <button class="btn-csv export" onclick="exportCSV()">⬇️ CSV 내보내기</button>
+      <span class="csv-tip">CSV 형식: 학년,이름,비밀번호 (헤더 없이)</span>
+    </div>
+
+    <!-- 학년 필터 -->
+    <div class="grade-filter" id="gf-bar">
+      <button class="gf-btn on" onclick="filterGrade('all',this)">전체</button>
+      <button class="gf-btn" onclick="filterGrade('1',this)">1학년</button>
+      <button class="gf-btn" onclick="filterGrade('2',this)">2학년</button>
+      <button class="gf-btn" onclick="filterGrade('3',this)">3학년</button>
+      <button class="gf-btn" onclick="filterGrade('4',this)">4학년</button>
+      <button class="gf-btn" onclick="filterGrade('5',this)">5학년</button>
+      <button class="gf-btn" onclick="filterGrade('6',this)">6학년</button>
+    </div>
+
+    <div class="stu-count" id="stu-count"></div>
+
+    <div class="stu-table-wrap">
+      <table class="stu-table">
+        <thead>
+          <tr>
+            <th style="width:70px">학년</th>
+            <th>이름</th>
+            <th style="width:120px">비밀번호</th>
+            <th style="width:110px">관리</th>
+          </tr>
+        </thead>
+        <tbody id="stu-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
   <!-- ── 탭1: 교사 시간 ── -->
   <div id="tab-timeslots" class="content">
-    <!-- CSV 업로드 바 -->
-    <div class="upload-bar">
-      <button class="btn-upload" onclick="document.getElementById('ts-csv-input').click()">📂 타임슬롯 CSV 업로드</button>
-      <input type="file" id="ts-csv-input" class="hidden-file" accept=".csv,.txt" onchange="uploadTimeslotCSV(this)">
-      <button class="btn-upload export" onclick="exportTimeslotCSV()">⬇️ 내보내기</button>
-      <span class="upload-tip">형식: 교사이름,10:00-10:10|10:15-10:25|... (행 하나=교사 1명)</span>
-    </div>
     <div class="filter-bar">
       <input class="flex1" type="text" id="ts-search" placeholder="🔍 교사 이름 검색" oninput="renderTimeslots()">
     </div>
@@ -371,8 +456,7 @@ tr:hover td{background:#FAFBFF}
     </div>
     <div class="form-row">
       <label>교사 이름</label>
-      <input type="text" id="m-teacher" placeholder="교사 이름 입력 또는 선택" list="teacher-datalist" autocomplete="off">
-      <datalist id="teacher-datalist"></datalist>
+      <input type="text" id="m-teacher" placeholder="예: 이주일">
     </div>
     <div id="add-student-row" class="form-row" style="display:none">
       <label>학생 이름 <span style="color:var(--sb);font-weight:400">(쉼표로 여러명: 김철수,이영희)</span></label>
@@ -390,14 +474,14 @@ tr:hover td{background:#FAFBFF}
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script>
 const firebaseConfig = {
-  apiKey: "AIzaSyBFoBcT-jvdlzl7nlWiG_MrA9WjzxTRjvY",
-  authDomain: "his-ptc.firebaseapp.com",
-  databaseURL: "https://his-ptc-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "his-ptc",
-  storageBucket: "his-ptc.firebasestorage.app",
-  messagingSenderId: "658097061370",
-  appId: "1:658097061370:web:63ddb52152d98b12bbf843",
-  measurementId: "G-4S36EVP497"
+  apiKey: "AIzaSyANsFefoPEAdLv38VXVO17RwpzItUEi5Ls",
+  authDomain: "his-ptc-es.firebaseapp.com",
+  databaseURL: "https://his-ptc-es-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "his-ptc-es",
+  storageBucket: "his-ptc-es.firebasestorage.app",
+  messagingSenderId: "152799450434",
+  appId: "1:152799450434:web:2c3abb2eaa8f309e4324db",
+  measurementId: "G-KNGQTCP42F"
 };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
@@ -437,15 +521,16 @@ async function loadAll() {
   } catch(e) { console.error(e); toast('데이터 로드 실패', 'err'); }
 }
 function refreshAll() { loadAll().then(() => toast('새로고침 완료', 'ok')); }
-function renderAll()  { renderTimeslots(); renderSubjects(); renderReservations(); renderStudents(); refreshTeacherDatalist(); }
+function renderAll()  { renderTimeslots(); renderSubjects(); renderReservations(); renderStudents(); }
 
 // ── 탭 전환 ──────────────────────────────────────
-const TABS = ['timeslots','subjects','reservations','students'];
+const TABS = ['timeslots','subjects','reservations','students','stulist'];
 function switchTab(tab) {
   TABS.forEach((t,i) => {
     document.getElementById('tab-'+t).style.display = t===tab ? 'block' : 'none';
     document.querySelectorAll('.tab')[i].classList.toggle('active', t===tab);
   });
+  if (tab === 'stulist') loadStuList();
 }
 
 // ════════════════════════════════════════════════
@@ -899,10 +984,12 @@ function renderStudents() {
       <td>${s.학년||'-'}학년</td>
       <td>${s.반||'-'}반</td>
       <td><span style="font-size:16px;font-weight:900;color:var(--nv)">${s.예약횟수||5}</span>회</td>
-      <td style="display:flex;align-items:center;gap:6px">
-        <input class="edit-input num" type="number" min="1" max="20"
-               value="${s.예약횟수||5}" id="cnt_${esc(s.key)}">
-        <button class="btn-save" onclick="saveStudentCount('${esc(s.key)}','${esc(s.이름||'')}')">저장</button>
+      <td>
+        <div style="display:flex;align-items:center;gap:6px">
+          <input class="edit-input num" type="number" min="1" max="20"
+                 value="${s.예약횟수||5}" id="cnt_${esc(s.key)}">
+          <button class="btn-save" onclick="saveStudentCount('${esc(s.key)}','${esc(s.이름||'')}')">저장</button>
+        </div>
       </td>
     </tr>`).join('');
 }
@@ -1059,20 +1146,117 @@ async function clearPeriod() {
 }
 
 // ════════════════════════════════════════════════
-// 교사 목록 → 드롭다운 연동
+// TAB 5: 학생 명단 관리
 // ════════════════════════════════════════════════
-function refreshTeacherDatalist() {
-  // allTimeslots에서 교사 이름 추출 (중복 제거, 정렬)
-  const names = [...new Set(Object.values(allTimeslots).map(s => s.교사).filter(Boolean))].sort();
-  const dl = document.getElementById('teacher-datalist');
-  if (dl) dl.innerHTML = names.map(n => `<option value="${n}">`).join('');
+let allStudentList = [];   // [{ key, 학년, 이름, 비밀번호 }]
+let gfActive = 'all';
+
+async function loadStuList() {
+  try {
+    const snap = await db.ref('students').once('value');
+    allStudentList = [];
+    snap.forEach(child => {
+      const s = child.val();
+      allStudentList.push({ key: child.key, 학년: String(s['학년']), 이름: s['이름'], 비밀번호: String(s['비밀번호']||'') });
+    });
+    allStudentList.sort((a,b) => a.학년.localeCompare(b.학년) || a.이름.localeCompare(b.이름));
+    renderStuList();
+  } catch(e) { toast('학생 목록 로드 실패', 'err'); }
 }
 
-// ════════════════════════════════════════════════
-// 타임슬롯 CSV 업로드
-// 형식: 교사이름,시간1|시간2|시간3
-// ════════════════════════════════════════════════
-function uploadTimeslotCSV(input) {
+function filterGrade(g, btn) {
+  gfActive = g;
+  document.querySelectorAll('.gf-btn').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  renderStuList();
+}
+
+function renderStuList() {
+  const list = gfActive === 'all' ? allStudentList : allStudentList.filter(s => s.학년 === gfActive);
+  document.getElementById('stu-count').textContent = `총 ${list.length}명`;
+  const tbody = document.getElementById('stu-tbody');
+  if (!list.length) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--sb)">학생이 없습니다.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = list.map(s => `
+    <tr id="row-${esc(s.key)}">
+      <td>${s.학년}학년</td>
+      <td id="td-name-${esc(s.key)}">${s.이름}</td>
+      <td class="td-pw" id="td-pw-${esc(s.key)}">${s.비밀번호}</td>
+      <td>
+        <button class="btn-edit" onclick="editRow('${esc(s.key)}','${esc(s.이름)}','${esc(s.비밀번호)}')">✏️ 수정</button>
+        <button class="btn-del"  onclick="delStudent('${esc(s.key)}','${esc(s.이름)}')">🗑️</button>
+      </td>
+    </tr>`).join('');
+}
+
+// ── 개별 추가 ─────────────────────────────────
+async function addStudent() {
+  const grade = document.getElementById('af-grade').value;
+  const name  = document.getElementById('af-name').value.trim();
+  const pw    = document.getElementById('af-pw').value.trim();
+  if (!name)           { toast('이름을 입력해주세요.', 'err'); return; }
+  if (!pw)             { toast('비밀번호를 입력해주세요.', 'err'); return; }
+
+  const key = `${grade}_A_${name}`;
+  try {
+    const snap = await db.ref(`students/${key}`).once('value');
+    if (snap.exists()) { toast(`이미 존재하는 학생입니다: ${name}`, 'err'); return; }
+    await db.ref(`students/${key}`).set({ 학년: Number(grade), 반: 'A', 이름: name, 비밀번호: pw, 예약횟수: 5 });
+    toast(`${grade}학년 ${name} 추가 완료!`, 'ok');
+    document.getElementById('af-name').value = '';
+    document.getElementById('af-pw').value   = '';
+    await loadStuList();
+  } catch(e) { toast('추가 실패: ' + e.message, 'err'); }
+}
+
+// ── 인라인 수정 ───────────────────────────────
+function editRow(key, name, pw) {
+  document.getElementById(`td-name-${key}`).innerHTML =
+    `<input type="text" value="${name}" id="ei-name-${key}" style="width:90px">`;
+  document.getElementById(`td-pw-${key}`).innerHTML =
+    `<input type="text" value="${pw}" id="ei-pw-${key}" style="width:80px" maxlength="8">`;
+  const td = document.querySelector(`#row-${key} td:last-child`);
+  td.innerHTML = `<button class="btn-save" onclick="saveRow('${key}')">💾 저장</button>
+                  <button class="btn-del"  onclick="loadStuList()">✕</button>`;
+}
+
+async function saveRow(key) {
+  const newName = document.getElementById(`ei-name-${key}`)?.value.trim();
+  const newPw   = document.getElementById(`ei-pw-${key}`)?.value.trim();
+  if (!newName || !newPw) { toast('이름/비밀번호를 입력하세요.', 'err'); return; }
+
+  // 키에서 학년 추출
+  const grade = key.split('_')[0];
+  const newKey = `${grade}_A_${newName}`;
+  try {
+    // 이름이 바뀌었으면 새 키로 이동
+    if (newKey !== key) {
+      const oldSnap = await db.ref(`students/${key}`).once('value');
+      const oldData = oldSnap.val();
+      await db.ref(`students/${newKey}`).set({ ...oldData, 이름: newName, 비밀번호: newPw });
+      await db.ref(`students/${key}`).remove();
+    } else {
+      await db.ref(`students/${key}`).update({ 이름: newName, 비밀번호: newPw });
+    }
+    toast('수정 완료!', 'ok');
+    await loadStuList();
+  } catch(e) { toast('수정 실패: ' + e.message, 'err'); }
+}
+
+// ── 삭제 ──────────────────────────────────────
+async function delStudent(key, name) {
+  if (!confirm(`"${name}" 학생을 삭제하시겠습니까?`)) return;
+  try {
+    await db.ref(`students/${key}`).remove();
+    toast(`${name} 삭제 완료`, 'ok');
+    await loadStuList();
+  } catch(e) { toast('삭제 실패: ' + e.message, 'err'); }
+}
+
+// ── CSV 업로드 ─────────────────────────────────
+function uploadCSV(input) {
   const file = input.files[0];
   if (!file) return;
   const reader = new FileReader();
@@ -1080,57 +1264,33 @@ function uploadTimeslotCSV(input) {
     const lines = e.target.result.split('\n').map(l => l.trim()).filter(Boolean);
     const updates = {};
     const errors  = [];
-    let slotCount = 0;
-
     lines.forEach((line, i) => {
-      const commaIdx = line.indexOf(',');
-      if (commaIdx < 0) { errors.push(`${i+1}행 형식 오류: ${line}`); return; }
-      const teacher = line.slice(0, commaIdx).trim();
-      const times   = line.slice(commaIdx+1).split('|').map(t => t.trim()).filter(Boolean);
-      if (!teacher || !times.length) { errors.push(`${i+1}행 데이터 없음`); return; }
-
-      times.forEach((time, j) => {
-        const slotNum = String(j+1).padStart(3,'0');
-        const key = `${teacher}_SL${slotNum}`;
-        updates[`timeslots/${key}`] = { 교사: teacher, 시간: time, 예약완료: '' };
-        slotCount++;
-      });
+      const [grade, name, pw] = line.split(',').map(s => s.trim());
+      if (!grade || !name || !pw) { errors.push(`${i+1}행 오류: ${line}`); return; }
+      if (!/^[1-6]$/.test(grade)) { errors.push(`${i+1}행: 학년은 1~6이어야 합니다.`); return; }
+      const key = `${grade}_A_${name}`;
+      updates[`students/${key}`] = { 학년: Number(grade), 반: 'A', 이름: name, 비밀번호: pw, 예약횟수: 5 };
     });
-
-    if (errors.length) { console.error(errors); toast(`⚠️ ${errors.length}행 오류 (콘솔 확인)`, 'err'); }
+    if (errors.length) { toast(`⚠️ ${errors.length}개 오류 (콘솔 확인)`, 'err'); console.error(errors); }
     if (!Object.keys(updates).length) { toast('업로드할 데이터가 없습니다.', 'err'); return; }
-
-    if (!confirm(`${lines.length - errors.length}명 교사, 총 ${slotCount}개 슬롯을 업로드합니다.\n기존 슬롯은 덮어씁니다. 계속하시겠습니까?`)) { input.value=''; return; }
-
     try {
       await db.ref().update(updates);
-      toast(`✅ ${slotCount}개 타임슬롯 업로드 완료!`, 'ok');
-      await loadAll();
+      toast(`✅ ${Object.keys(updates).length}명 업로드 완료!`, 'ok');
+      await loadStuList();
     } catch(err) { toast('업로드 실패: ' + err.message, 'err'); }
     input.value = '';
   };
   reader.readAsText(file, 'UTF-8');
 }
 
-// ── 타임슬롯 CSV 내보내기 ─────────────────────────
-function exportTimeslotCSV() {
-  if (!Object.keys(allTimeslots).length) { toast('내보낼 데이터가 없습니다.', 'err'); return; }
-
-  // 교사별 시간 목록 그룹화
-  const map = {};
-  Object.values(allTimeslots).forEach(s => {
-    if (!s.교사 || !s.시간) return;
-    if (!map[s.교사]) map[s.교사] = [];
-    map[s.교사].push(s.시간);
-  });
-
-  const rows = Object.entries(map)
-    .sort(([a],[b]) => a.localeCompare(b))
-    .map(([teacher, times]) => `${teacher},${times.join('|')}`);
-
+// ── CSV 내보내기 ───────────────────────────────
+function exportCSV() {
+  if (!allStudentList.length) { toast('내보낼 데이터가 없습니다.', 'err'); return; }
+  const rows = allStudentList.map(s => `${s.학년},${s.이름},${s.비밀번호}`);
   const blob = new Blob(['\uFEFF' + rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
   const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a'); a.href=url; a.download='timeslots.csv'; a.click();
+  const a    = document.createElement('a');
+  a.href = url; a.download = 'students.csv'; a.click();
   URL.revokeObjectURL(url);
 }
 
