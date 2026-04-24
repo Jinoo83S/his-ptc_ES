@@ -190,6 +190,10 @@ input[type=file].hidden-file{display:none}
 .tg-head h3{font-size:14px;font-weight:700;color:#fff}
 .tg-stats{font-size:12px;color:rgba(255,255,255,.65)}
 .tg-arrow{color:rgba(255,255,255,.8);font-size:16px;transition:transform .2s}
+.btn-tc-edit{padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.35);color:#fff;cursor:pointer;transition:background .13s}
+.btn-tc-edit:hover{background:rgba(255,255,255,.32)}
+.btn-tc-del{padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;background:rgba(220,38,38,.35);border:1px solid rgba(255,150,150,.4);color:#fff;cursor:pointer;transition:background .13s}
+.btn-tc-del:hover{background:rgba(220,38,38,.55)}
 .tg-body{display:none;padding:0}
 .tg-body.open{display:block}
 
@@ -689,8 +693,10 @@ function renderTimeslots() {
     <div class="tg" id="tg_${esc(tc)}">
       <div class="tg-head" onclick="toggleGroup('${esc(tc)}')">
         <h3>👨‍🏫 ${tc}</h3>
-        <div style="display:flex;align-items:center;gap:12px">
+        <div style="display:flex;align-items:center;gap:8px">
           <span class="tg-stats">전체 ${slots.length} · 예약 ${booked} · 가능 ${avail}</span>
+          <button class="btn-tc-edit" onclick="event.stopPropagation();renameTeacher('${esc(tc)}')">✏️ 수정</button>
+          <button class="btn-tc-del"  onclick="event.stopPropagation();deleteTeacher('${esc(tc)}')">🗑 삭제</button>
           <span class="tg-arrow" id="arr_${esc(tc)}">›</span>
         </div>
       </div>
@@ -1422,6 +1428,49 @@ function exportCSV() {
   URL.revokeObjectURL(url);
 }
 
+// ── 교사 이름 수정 ────────────────────────────────
+async function renameTeacher(oldName) {
+  const newName = prompt(`"${oldName}" 교사의 새 이름을 입력하세요:`, oldName);
+  if (!newName || newName.trim() === oldName) return;
+  const trimmed = newName.trim();
+
+  // 해당 교사의 모든 슬롯 찾기
+  const slots = Object.entries(allTimeslots).filter(([,v]) => v.교사 === oldName);
+  if (!slots.length) { toast('슬롯이 없습니다.', 'err'); return; }
+
+  try {
+    const updates = {};
+    for (const [oldKey, val] of slots) {
+      // 새 키 생성 (교사명 부분만 교체)
+      const newKey = oldKey.replace(oldName, trimmed);
+      updates[`timeslots/${newKey}`] = { ...val, 교사: trimmed };
+      updates[`timeslots/${oldKey}`] = null; // 기존 키 삭제
+    }
+    await db.ref().update(updates);
+    toast(`"${oldName}" → "${trimmed}" 수정 완료 (${slots.length}개 슬롯)`, 'ok');
+    await loadAll();
+  } catch(e) { toast('수정 실패: ' + e.message, 'err'); }
+}
+
+// ── 교사 전체 삭제 ────────────────────────────────
+async function deleteTeacher(name) {
+  const slots = Object.entries(allTimeslots).filter(([,v]) => v.교사 === name);
+  const booked = slots.filter(([,v]) => String(v.예약완료||'').trim() !== '').length;
+
+  const msg = booked > 0
+    ? `"${name}" 교사를 삭제하시겠습니까?\n⚠️ 예약된 슬롯 ${booked}개가 포함되어 있습니다!\n\n전체 ${slots.length}개 슬롯이 삭제됩니다.`
+    : `"${name}" 교사의 슬롯 ${slots.length}개를 삭제하시겠습니까?`;
+
+  if (!confirm(msg)) return;
+  try {
+    const updates = {};
+    slots.forEach(([key]) => { updates[`timeslots/${key}`] = null; });
+    await db.ref().update(updates);
+    toast(`"${name}" 삭제 완료`, 'ok');
+    await loadAll();
+  } catch(e) { toast('삭제 실패: ' + e.message, 'err'); }
+}
+
 // ── 붙여넣기 접기/펼치기 ─────────────────────────
 function togglePaste(prefix) {
   const area   = document.getElementById(`${prefix}-paste-area`);
@@ -1551,7 +1600,7 @@ async function pasteAddTimeslots() {
   teachers.forEach(({ teacher, times }) => {
     times.forEach((time, j) => {
       const key = `${teacher}_SL${String(j+1).padStart(3,'0')}`;
-      updates[`timeslots/${key}`] = { 교사: teacher, 시간: time, 예약완료: '' };
+      updates[`timeslots/${key}`] = { 교사: teacher, 시간: time, 예약가능: true, 예약완료: '' };
     });
   });
   try {
@@ -1591,7 +1640,7 @@ function uploadTimeslotCSV(input) {
       if (!teacher || !times.length) { errors.push(`${i+1}행 데이터 없음`); return; }
       times.forEach((time, j) => {
         const key = `${teacher}_SL${String(j+1).padStart(3,'0')}`;
-        updates[`timeslots/${key}`] = { 교사: teacher, 시간: time, 예약완료: '' };
+        updates[`timeslots/${key}`] = { 교사: teacher, 시간: time, 예약가능: true, 예약완료: '' };
         slotCount++;
       });
     });
