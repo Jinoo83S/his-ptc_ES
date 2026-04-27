@@ -108,7 +108,7 @@ hr.div{border:none;border-top:1px dashed var(--bd);margin:18px 0}
     <div class="emblem">🎓</div>
     <h1>Handong International School</h1>
     <p class="sub">한동글로벌학교 초등부 Elementary</p>
-    <div class="ptc-chip">📅 PTC 예약 2026 · 5월 15일</div>
+    <div class="ptc-chip" id="ptc-chip">📅 PTC 예약 2026 · 5월 15일</div>
   </div>
 
   <div class="lcard">
@@ -180,6 +180,13 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
+
+// PTC 날짜 동적 표시
+db.ref('settings/ptcDate').once('value').then(snap => {
+  if (snap.val()) {
+    document.getElementById('ptc-chip').textContent = `📅 PTC 예약 2026 · ${snap.val()}`;
+  }
+}).catch(()=>{});
 
 // ── 상태 ─────────────────────────────────────────
 const S = { grade:null, cls:'A', name:null }; // 반은 'A' 고정

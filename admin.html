@@ -311,6 +311,12 @@ input[type=file].hidden-file{display:none}
   <!-- ── 예약 기간 설정 배너 ── -->
   <div class="period-banner" id="period-banner">
     <div class="period-inner">
+      <!-- PTC 날짜 편집 -->
+      <div class="period-field" style="border-right:1px solid var(--bd);padding-right:12px;margin-right:2px">
+        <label style="font-size:11px;font-weight:800;color:var(--sb)">📌 PTC 날짜</label>
+        <input type="text" id="ptc-date-input" placeholder="예: 5월 15일" style="padding:6px 9px;border:1.5px solid var(--bd);border-radius:8px;font-size:13px;color:var(--tx);outline:none;width:110px;transition:border-color .2s">
+        <button onclick="savePtcDate()" style="padding:6px 10px;background:var(--nv2);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;transition:opacity .14s" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">저장</button>
+      </div>
       <span class="period-label">📅 예약 기간 설정</span>
       <div class="period-fields">
         <div class="period-field">
@@ -1296,12 +1302,25 @@ function downloadExcel() {
 // ════════════════════════════════════════════════
 async function loadSettings() {
   try {
-    const snap = await db.ref('settings/period').once('value');
-    const p = snap.val();
+    const [pSnap, dSnap] = await Promise.all([
+      db.ref('settings/period').once('value'),
+      db.ref('settings/ptcDate').once('value'),
+    ]);
+    const p = pSnap.val();
     if (p && p.start) document.getElementById('period-start').value = toLocalDT(p.start);
     if (p && p.end)   document.getElementById('period-end').value   = toLocalDT(p.end);
     updatePeriodStatus(p);
+    if (dSnap.val()) document.getElementById('ptc-date-input').value = dSnap.val();
   } catch(e) { updatePeriodStatus(null); }
+}
+
+async function savePtcDate() {
+  const val = document.getElementById('ptc-date-input').value.trim();
+  if (!val) { toast('PTC 날짜를 입력해주세요.', 'err'); return; }
+  try {
+    await db.ref('settings/ptcDate').set(val);
+    toast(`PTC 날짜 저장 완료: ${val}`, 'ok');
+  } catch(e) { toast('저장 실패: '+e.message, 'err'); }
 }
 
 function toLocalDT(isoStr) {
