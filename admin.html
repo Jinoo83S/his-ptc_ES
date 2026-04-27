@@ -440,19 +440,33 @@ input[type=file].hidden-file{display:none}
       </select>
       <input class="flex1" type="text" id="sub-search" placeholder="🔍 교사/과목/분류 검색" oninput="renderSubjects()">
     </div>
+    <!-- 엑셀 붙여넣기 접기/펼치기 -->
+    <div class="tool-bar">
+      <button class="btn-toggle-paste" id="sub-paste-toggle" onclick="togglePaste('sub')">📋 엑셀 붙여넣기 ▾</button>
+      <button class="btn-upload" onclick="document.getElementById('sub-csv-input').click()" style="padding:6px 12px">📂 CSV 업로드</button>
+      <input type="file" id="sub-csv-input" class="hidden-file" accept=".csv,.txt" onchange="uploadSubjectCSV(this)">
+      <button class="btn-upload export" onclick="exportSubjectCSV()" style="padding:6px 12px">⬇️ 내보내기</button>
+      <span class="upload-tip">CSV: 학년,분류,과목명,교사이름</span>
+    </div>
+    <div class="paste-collapse" id="sub-paste-area">
+      <div class="ps-hint">
+        열 구성: <code>학년</code> <code>분류</code> <code>과목명</code> <code>교사이름</code> — 탭으로 구분, 헤더 없이<br>
+        예) <code>1　교과　국어 Korean Language Arts　오민혜</code>
+      </div>
+      <textarea class="paste-ta" id="sub-paste-ta" placeholder="엑셀 데이터를 붙여넣으세요 (Ctrl+V)" oninput="previewSubPaste()"></textarea>
+      <div class="paste-preview" id="sub-paste-preview"></div>
+      <div class="paste-btns">
+        <button class="btn-paste-add" onclick="pasteAddSubjects()">📥 과목 추가</button>
+        <button class="btn-paste-clear" onclick="document.getElementById('sub-paste-ta').value='';document.getElementById('sub-paste-preview').textContent=''">지우기</button>
+      </div>
+    </div>
     <div class="card">
       <div class="card-title">
         수강과목 목록
         <div style="display:flex;gap:8px;align-items:center">
           <span class="badge" id="sub-count">0건</span>
-          <button class="btn-upload" onclick="document.getElementById('sub-csv-input').click()" style="padding:6px 12px">📂 CSV 업로드</button>
-          <input type="file" id="sub-csv-input" class="hidden-file" accept=".csv,.txt" onchange="uploadSubjectCSV(this)">
-          <button class="btn-upload export" onclick="exportSubjectCSV()" style="padding:6px 12px">⬇️ 내보내기</button>
           <button class="btn-save" onclick="openAddModal()">+ 과목 추가</button>
         </div>
-      </div>
-      <div style="padding:6px 14px;font-size:11px;color:var(--sb);background:#FAFBFF;border-bottom:1px solid var(--bd)">
-        📄 CSV 형식: <code style="background:var(--bg);padding:1px 5px;border-radius:4px;font-family:monospace">학년,분류,과목명,교사이름</code> — 학생명단 없이 과목 등록
       </div>
       <div class="tbl-wrap">
         <table>
@@ -1495,6 +1509,56 @@ async function deleteTeacher(name) {
 }
 
 // ── 붙여넣기 접기/펼치기 ─────────────────────────
+// ════════════════════════════════════════════════
+// 수강과목 엑셀 붙여넣기
+// 형식: 학년 탭 분류 탭 과목명 탭 교사이름
+// ════════════════════════════════════════════════
+function parseSubPaste() {
+  const raw = document.getElementById('sub-paste-ta').value.trim();
+  if (!raw) return { rows:[], errors:[] };
+  const rows=[], errors=[];
+  raw.split('\n').forEach((line,i) => {
+    const cols = line.split('\t').map(c=>c.trim());
+    const [grade, type, subject, teacher] = cols;
+    if (!grade&&!type&&!subject&&!teacher) return;
+    if (!grade||!type||!subject||!teacher) { errors.push(`${i+1}행: 열이 부족합니다 → "${line}"`); return; }
+    if (!/^[1-6]$/.test(grade)) { errors.push(`${i+1}행: 학년은 1~6 → "${grade}"`); return; }
+    rows.push({ grade, type, subject, teacher });
+  });
+  return { rows, errors };
+}
+
+function previewSubPaste() {
+  const { rows, errors } = parseSubPaste();
+  const el = document.getElementById('sub-paste-preview');
+  if (!rows.length && !errors.length) { el.textContent=''; return; }
+  const parts=[];
+  if (rows.length)   parts.push(`✅ ${rows.length}개 과목 인식됨`);
+  if (errors.length) parts.push(`⚠️ ${errors.length}행 오류`);
+  el.textContent = parts.join('  |  ');
+  el.className = 'paste-preview'+(errors.length?' err':'');
+}
+
+async function pasteAddSubjects() {
+  const { rows, errors } = parseSubPaste();
+  if (errors.length) { toast(`${errors.length}개 오류 (콘솔 확인)`,'err'); console.error(errors); }
+  if (!rows.length) { toast('추가할 과목이 없습니다.','err'); return; }
+  if (!confirm(`${rows.length}개 과목을 추가하시겠습니까?\n(동일 키는 덮어씁니다)`)) return;
+
+  const updates = {};
+  rows.forEach(({ grade, type, subject, teacher }, i) => {
+    const key = `${grade}_A_\u0020_${teacher}_s${i}`;
+    updates[`subjects/${key}`] = { 학년:Number(grade), 반:'A', 분류:type, 이름:' ', 과목:subject, 교사:teacher };
+  });
+  try {
+    await db.ref().update(updates);
+    toast(`✅ ${rows.length}개 과목 추가 완료!`, 'ok');
+    document.getElementById('sub-paste-ta').value='';
+    document.getElementById('sub-paste-preview').textContent='';
+    await loadAll();
+  } catch(e) { toast('추가 실패: '+e.message,'err'); }
+}
+
 // ════════════════════════════════════════════════
 // 수강과목 CSV 업로드 / 내보내기
 // 형식: 학년,분류,과목명,교사이름
