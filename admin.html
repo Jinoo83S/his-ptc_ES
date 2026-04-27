@@ -80,6 +80,9 @@ input,select,textarea{font-family:inherit}
 /* ── 테이블 ── */
 .tbl-wrap{overflow-x:auto}
 table{width:100%;border-collapse:collapse;font-size:14px}
+th.sortable{cursor:pointer;user-select:none;white-space:nowrap}
+th.sortable:hover{background:rgba(255,255,255,.12)}
+th.sortable span{font-size:10px;opacity:.7;margin-left:2px}
 th{background:var(--bg);padding:9px 11px;text-align:left;font-size:12px;font-weight:800;color:var(--sb);letter-spacing:.3px;border-bottom:1px solid var(--bd)}
 td{padding:9px 11px;border-bottom:1px solid var(--bg);vertical-align:middle}
 tr:last-child td{border-bottom:none}
@@ -503,6 +506,9 @@ input[type=file].hidden-file{display:none}
       <div class="card-title">예약 목록
         <div style="display:flex;gap:8px;align-items:center">
           <span class="badge" id="rv-count">0건</span>
+          <button onclick="resetAllReservations()" style="padding:8px 14px;background:linear-gradient(135deg,#DC2626,#b91c1c);color:#fff;border-radius:8px;font-size:13px;font-weight:800;border:none;cursor:pointer;box-shadow:0 2px 8px rgba(220,38,38,.3);display:inline-flex;align-items:center;gap:5px;white-space:nowrap">
+            🗑️ 전체 초기화
+          </button>
           <button onclick="downloadExcel()" style="padding:8px 16px;background:linear-gradient(135deg,#15803D,#16a34a);color:#fff;border-radius:8px;font-size:13px;font-weight:800;border:none;cursor:pointer;box-shadow:0 2px 8px rgba(21,128,61,.35);display:inline-flex;align-items:center;gap:6px;white-space:nowrap">
             ⬇️ 엑셀 다운로드
           </button>
@@ -511,7 +517,13 @@ input[type=file].hidden-file{display:none}
       <div class="tbl-wrap">
         <table>
           <thead><tr>
-            <th>학생</th><th>학년/반</th><th>교사</th><th>과목</th><th>시간</th><th>예약시간</th><th>취소</th>
+            <th class="sortable" onclick="sortRv('학생')">학생 <span id="sort-icon-학생">↕</span></th>
+            <th class="sortable" onclick="sortRv('학년')">학년/반 <span id="sort-icon-학년">↕</span></th>
+            <th class="sortable" onclick="sortRv('교사')">교사 <span id="sort-icon-교사">↕</span></th>
+            <th>과목</th>
+            <th class="sortable" onclick="sortRv('시간')">시간 <span id="sort-icon-시간">↕</span></th>
+            <th class="sortable" onclick="sortRv('예약시간')">예약시간 <span id="sort-icon-예약시간">↕</span></th>
+            <th>취소</th>
           </tr></thead>
           <tbody id="rv-tbody"></tbody>
         </table>
@@ -1070,6 +1082,20 @@ async function deleteSubjectGroup(g) {
 // ════════════════════════════════════════════════
 // TAB 3: 예약 현황
 // ════════════════════════════════════════════════
+// ── 예약 목록 정렬 상태 ───────────────────────────
+let rvSortKey = '시간', rvSortAsc = true;
+
+function sortRv(key) {
+  if (rvSortKey === key) { rvSortAsc = !rvSortAsc; }
+  else { rvSortKey = key; rvSortAsc = true; }
+  // 아이콘 업데이트
+  ['학생','학년','교사','시간','예약시간'].forEach(k => {
+    const el = document.getElementById(`sort-icon-${k}`);
+    if (el) el.textContent = k === rvSortKey ? (rvSortAsc ? '↑' : '↓') : '↕';
+  });
+  renderReservations();
+}
+
 function renderReservations() {
   const grade  = document.getElementById('rv-grade').value;
   const cls    = document.getElementById('rv-class').value;
@@ -1082,7 +1108,14 @@ function renderReservations() {
     (r.학생||'').toLowerCase().includes(search)||
     (r.교사||'').toLowerCase().includes(search)
   );
-  list.sort((a,b)=>(a.시간||'').localeCompare(b.시간||''));
+  list.sort((a,b) => {
+    let va, vb;
+    if (rvSortKey === '학년') { va = `${a.학년||''}${a.반||''}`; vb = `${b.학년||''}${b.반||''}`; }
+    else if (rvSortKey === '예약시간') { va = a.예약시간||''; vb = b.예약시간||''; }
+    else { va = a[rvSortKey]||''; vb = b[rvSortKey]||''; }
+    const cmp = String(va).localeCompare(String(vb), undefined, {numeric:true});
+    return rvSortAsc ? cmp : -cmp;
+  });
 
   const uStu = new Set(list.map(r=>r.학생)).size;
   const uTc  = new Set(list.map(r=>r.교사)).size;
@@ -1812,6 +1845,25 @@ function exportTimeslotCSV() {
 // ════════════════════════════════════════════════
 // 관리자 비밀번호 변경
 // ════════════════════════════════════════════════
+// ── 전체 예약 초기화 ─────────────────────────────
+async function resetAllReservations() {
+  const rvCount = Object.keys(allReservations).length;
+  if (!rvCount) { toast('초기화할 예약이 없습니다.', 'warn'); return; }
+  if (!confirm(`⚠️ 전체 예약 초기화\n\n예약 ${rvCount}건을 모두 삭제하고\n타임슬롯 예약완료 필드를 초기화합니다.\n\n이 작업은 되돌릴 수 없습니다.\n계속하시겠습니까?`)) return;
+  if (!confirm(`정말로 전체 예약 ${rvCount}건을 초기화하시겠습니까?`)) return;
+  try {
+    const updates = {};
+    Object.keys(allReservations).forEach(key => { updates[`reservations/${key}`] = null; });
+    Object.keys(allTimeslots).forEach(key => {
+      if (String(allTimeslots[key]['예약완료']||'').trim() !== '')
+        updates[`timeslots/${key}/예약완료`] = '';
+    });
+    await db.ref().update(updates);
+    toast(`✅ 전체 예약 ${rvCount}건 초기화 완료!`, 'ok');
+    await loadAll();
+  } catch(e) { toast('초기화 실패: '+e.message, 'err'); }
+}
+
 // ── 유틸 ──────────────────────────────────────────
 function toast(msg, type='') {
   const el = document.getElementById('toast');
