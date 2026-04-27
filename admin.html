@@ -435,12 +435,8 @@ input[type=file].hidden-file{display:none}
     <div class="filter-bar">
       <select id="sub-grade" onchange="renderSubjects()">
         <option value="">전체 학년</option>
-        <option>7</option><option>8</option><option>9</option>
-        <option>10</option><option>11</option><option>12</option>
-      </select>
-      <select id="sub-class" onchange="renderSubjects()">
-        <option value="">전체 반</option>
-        <option>A</option><option>B</option><option>C</option>
+        <option>1</option><option>2</option><option>3</option>
+        <option>4</option><option>5</option><option>6</option>
       </select>
       <input class="flex1" type="text" id="sub-search" placeholder="🔍 교사/과목/분류 검색" oninput="renderSubjects()">
     </div>
@@ -449,13 +445,19 @@ input[type=file].hidden-file{display:none}
         수강과목 목록
         <div style="display:flex;gap:8px;align-items:center">
           <span class="badge" id="sub-count">0건</span>
+          <button class="btn-upload" onclick="document.getElementById('sub-csv-input').click()" style="padding:6px 12px">📂 CSV 업로드</button>
+          <input type="file" id="sub-csv-input" class="hidden-file" accept=".csv,.txt" onchange="uploadSubjectCSV(this)">
+          <button class="btn-upload export" onclick="exportSubjectCSV()" style="padding:6px 12px">⬇️ 내보내기</button>
           <button class="btn-save" onclick="openAddModal()">+ 과목 추가</button>
         </div>
+      </div>
+      <div style="padding:6px 14px;font-size:11px;color:var(--sb);background:#FAFBFF;border-bottom:1px solid var(--bd)">
+        📄 CSV 형식: <code style="background:var(--bg);padding:1px 5px;border-radius:4px;font-family:monospace">학년,분류,과목명,교사이름</code> — 학생명단 없이 과목 등록
       </div>
       <div class="tbl-wrap">
         <table>
           <thead><tr>
-            <th>학년</th><th>반</th><th>분류</th><th>과목</th><th>교사</th><th style="text-align:center">학생수</th><th>수정/삭제</th>
+            <th>학년</th><th>분류</th><th>과목</th><th>교사</th><th style="text-align:center">학생수</th><th>수정/삭제</th>
           </tr></thead>
           <tbody id="sub-tbody"></tbody>
         </table>
@@ -554,8 +556,21 @@ input[type=file].hidden-file{display:none}
       </select>
     </div>
     <div class="form-row">
-      <label>과목명</label>
-      <input type="text" id="m-subject" placeholder="예: 국어 Korean Language Arts">
+      <label>과목명 <span style="color:var(--sb);font-weight:400;font-size:11px">(선택 또는 직접 입력)</span></label>
+      <input type="text" id="m-subject" placeholder="과목명 입력 또는 선택" list="subject-datalist" autocomplete="off">
+      <datalist id="subject-datalist">
+        <option value="국어 Korean Language Arts">
+        <option value="수학 Mathematics">
+        <option value="영어 English">
+        <option value="과학 Science">
+        <option value="사회 Social Studies">
+        <option value="체육 P.E.">
+        <option value="미술 Art">
+        <option value="음악 Music">
+        <option value="컴퓨터 Computer Science">
+        <option value="Homeroom">
+        <option value="진로 Career Guidance">
+      </datalist>
     </div>
     <div class="form-row">
       <label>교사 이름</label>
@@ -880,13 +895,11 @@ function getSubjectGroupKey(s) {
 
 function renderSubjects() {
   const grade  = document.getElementById('sub-grade').value;
-  const cls    = document.getElementById('sub-class').value;
   const search = (document.getElementById('sub-search').value||'').trim().toLowerCase();
 
   const groupMap = {};
   Object.entries(allSubjects).forEach(([key, s]) => {
     if (grade  && String(s.학년) !== grade) return;
-    if (cls    && s.반 !== cls) return;
     if (search && !(
       (s.교사||'').toLowerCase().includes(search) ||
       (s.과목||'').toLowerCase().includes(search) ||
@@ -898,23 +911,20 @@ function renderSubjects() {
     if (s.이름 && s.이름.trim() && s.이름.trim() !== ' ') groupMap[gk].names.push(s.이름);
   });
 
-  // 정렬: 학년 → 반 → 교사 이름 순
   subjectGroups = Object.values(groupMap).sort((a, b) => {
     if (String(a.학년) !== String(b.학년)) return String(a.학년).localeCompare(String(b.학년), undefined, {numeric:true});
-    if (a.반 !== b.반) return a.반.localeCompare(b.반);
     return (a.교사||'').localeCompare(b.교사||'');
   });
 
   document.getElementById('sub-count').textContent = `${subjectGroups.length}건`;
   const tbody = document.getElementById('sub-tbody');
   if (!subjectGroups.length) {
-    tbody.innerHTML = '<tr><td colspan="7" class="empty">데이터가 없습니다.</td></tr>'; return;
+    tbody.innerHTML = '<tr><td colspan="6" class="empty">데이터가 없습니다.</td></tr>'; return;
   }
 
   tbody.innerHTML = subjectGroups.map((g, idx) => `
     <tr>
-      <td>${g.학년||'-'}</td>
-      <td>${g.반||'-'}</td>
+      <td>${g.학년||'-'}학년</td>
       <td><span style="font-size:12px;padding:2px 7px;border-radius:12px;background:var(--bg);color:var(--nv2)">${g.분류||'-'}</span></td>
       <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;color:var(--sb)">${g.과목||'-'}</td>
       <td><strong>${g.교사||'-'}</strong></td>
@@ -1485,6 +1495,55 @@ async function deleteTeacher(name) {
 }
 
 // ── 붙여넣기 접기/펼치기 ─────────────────────────
+// ════════════════════════════════════════════════
+// 수강과목 CSV 업로드 / 내보내기
+// 형식: 학년,분류,과목명,교사이름
+// ════════════════════════════════════════════════
+function uploadSubjectCSV(input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async e => {
+    const lines = e.target.result.split('\n').map(l=>l.trim()).filter(Boolean);
+    const updates = {}, errors = [];
+    lines.forEach((line, i) => {
+      const parts = line.split(',').map(s=>s.trim());
+      const [grade, type, subject, teacher] = parts;
+      if (!grade||!type||!subject||!teacher) { errors.push(`${i+1}행 오류: ${line}`); return; }
+      if (!/^[1-6]$/.test(grade)) { errors.push(`${i+1}행: 학년은 1~6 → "${grade}"`); return; }
+      // 학생명 없는 과목 레코드 (이름=' ')
+      const key = `${grade}_A_\u0020_${teacher}_${i}`;
+      updates[`subjects/${key}`] = { 학년:Number(grade), 반:'A', 분류:type, 이름:' ', 과목:subject, 교사:teacher };
+    });
+    if (errors.length) { console.error(errors); toast(`⚠️ ${errors.length}행 오류`, 'err'); }
+    if (!Object.keys(updates).length) { toast('업로드할 데이터가 없습니다.','err'); return; }
+    if (!confirm(`${Object.keys(updates).length}개 과목을 업로드합니다. 계속하시겠습니까?`)) { input.value=''; return; }
+    try {
+      await db.ref().update(updates);
+      toast(`✅ ${Object.keys(updates).length}개 과목 업로드 완료!`, 'ok');
+      await loadAll();
+    } catch(err) { toast('업로드 실패: '+err.message,'err'); }
+    input.value='';
+  };
+  reader.readAsText(file,'UTF-8');
+}
+
+function exportSubjectCSV() {
+  if (!Object.keys(allSubjects).length) { toast('내보낼 데이터가 없습니다.','err'); return; }
+  const seen = new Set(), rows = [];
+  Object.values(allSubjects)
+    .sort((a,b)=>String(a.학년).localeCompare(String(b.학년),undefined,{numeric:true}))
+    .forEach(s => {
+      const key = `${s.학년}|${s.분류}|${s.과목}|${s.교사}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      rows.push(`${s.학년},${s.분류||'교과'},${s.과목||''},${s.교사||''}`);
+    });
+  const blob = new Blob(['\uFEFF'+rows.join('\n')],{type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download='subjects.csv'; a.click();
+  URL.revokeObjectURL(url);
+}
+
 function togglePaste(prefix) {
   const area   = document.getElementById(`${prefix}-paste-area`);
   const toggle = document.getElementById(`${prefix}-paste-toggle`);
