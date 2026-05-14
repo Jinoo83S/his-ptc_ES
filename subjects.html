@@ -78,7 +78,7 @@ button{cursor:pointer;font-family:inherit;border:none}
 .empty{background:rgba(255,255,255,.1);border:1px dashed rgba(255,255,255,.25);border-radius:16px;padding:28px 20px;text-align:center;color:rgba(255,255,255,.65);font-size:14px}
 
 /* ── 예약 잠금 오버레이 ── */
-#lock-overlay{position:fixed;inset:0;z-index:300;background:rgba(8,18,60,.75);backdrop-filter:blur(10px);display:none;align-items:center;justify-content:center;padding:20px}
+#lock-overlay{position:fixed;inset:0;z-index:300;background:rgba(8,18,60,.55);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;padding:20px}
 #lock-overlay.on{display:flex}
 .lock-box{background:#fff;border-radius:var(--rlg);padding:36px 28px;max-width:420px;width:100%;text-align:center;box-shadow:var(--shh);animation:fadeUp .4s cubic-bezier(.16,1,.3,1)}
 .lock-icon{font-size:54px;margin-bottom:14px;line-height:1}
@@ -181,7 +181,6 @@ function init() {
   document.getElementById('stu-name').textContent = student.이름;
   document.getElementById('stu-info').textContent = `${student.학년}학년`;
 
-  checkPeriod();
   loadData();
 }
 
@@ -236,6 +235,21 @@ async function loadData() {
       }
     });
 
+    // 2: 타임슬롯 로드해서 슬롯 수 추가
+    try {
+      const tsSnap = await db.ref('timeslots').once('value');
+      const slots = tsSnap.val() || {};
+      const slotMap = {}; // {교사: {total, avail}}
+      Object.values(slots).forEach(s => {
+        const t = s.교사; if(!t) return;
+        if(!slotMap[t]) slotMap[t] = {total:0, avail:0};
+        slotMap[t].total++;
+        if(s.예약가능 !== false && !String(s.예약완료||'').trim()) slotMap[t].avail++;
+      });
+      Object.keys(teacherMap).forEach(t => {
+        if(slotMap[t]) { teacherMap[t].slotTotal = slotMap[t].total; teacherMap[t].slotAvail = slotMap[t].avail; }
+      });
+    } catch(e) {}
     renderTeachers(teacherMap);
 
   } catch(e) {
@@ -262,7 +276,7 @@ function renderTeachers(teacherMap) {
   const groups = { 담임: [], 진로: [], 교과: [] };
   teachers.forEach(([tcName, info]) => {
     const g = groups[info.분류] ? info.분류 : '교과';
-    groups[g].push({ 교사: tcName, 과목: info.과목, 분류: info.분류 });
+    groups[g].push({ 교사: tcName, 과목: info.과목, 분류: info.분류, slotTotal: info.slotTotal, slotAvail: info.slotAvail });
   });
 
   const labelMap = { 담임: '🏠 담임 선생님', 진로: '🧭 진로 상담', 교과: '📚 수강 과목 교사' };
@@ -278,18 +292,22 @@ function renderTeachers(teacherMap) {
       const tagClass = booked ? 'tag-booked' : `tag-${type}`;
       const tagLabel = booked ? '예약완료' : (type === '담임' ? '담임' : type === '진로' ? '진로상담' : '교과');
       const cardClass = booked ? 'tc-card booked' : 'tc-card';
-      const onClick = booked ? '' : `onclick="selectTeacher('${esc(tc.교사)}','${esc(tc.과목)}','${esc(tc.분류)}')"`;
+      // 5: 예약완료 교사도 클릭 가능 (시간 변경용)
+      const onClick = `onclick="selectTeacher('${esc(tc.교사)}','${esc(tc.과목)}','${esc(tc.분류)}')"`;
       const rightIcon = booked
         ? `<span class="tc-chk">✓</span>`
         : `<span class="tc-arr">›</span>`;
       const bookedTimeHtml = booked
         ? `<div class="booked-time">⏰ ${booked.시간}</div>` : '';
+      // 2: 남은슬롯/전체 표시
+      const slotInfo = tc.slotTotal !== undefined
+        ? `<span style="font-size:10px;color:var(--sb);margin-left:4px">${tc.slotAvail}/${tc.slotTotal}</span>` : '';
 
       html += `
-        <div class="${cardClass}" ${onClick}>
+        <div class="${cardClass}" ${onClick} style="cursor:pointer">
           <div class="tc-ico">${iconMap[type] || '👨‍🏫'}</div>
           <div class="tc-info">
-            <div class="tc-name">${tc.교사} <span class="tc-name-sub">· ${tc.과목}</span></div>
+            <div class="tc-name">${tc.교사} <span class="tc-name-sub">· ${tc.과목}</span>${slotInfo}</div>
             ${bookedTimeHtml}
           </div>
           <span class="tc-tag ${tagClass}">${tagLabel}</span>
@@ -313,10 +331,24 @@ function updateQuota(teacherMap) {
 }
 
 // ── 교사 선택 → timeslots 페이지로 ──────────────
-function selectTeacher(teacher, subject, type) {
+async function selectTeacher(teacher, subject, type) {
+  // 예약 기간 체크
+  try {
+    const snap = await db.ref('settings/period').once('value');
+    const p = snap.val();
+    if (p && p.start && p.end) {
+      const now = Date.now(), s = new Date(p.start), e = new Date(p.end);
+      const fmt = d => d.toLocaleString('ko-KR',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false});
+      if (now < s.getTime()) {
+        showLock('⏳','예약 준비 중','아직 예약 기간이 시작되지 않았습니다.\n아래 일정을 확인해주세요.',s,e,fmt); return;
+      } else if (now > e.getTime()) {
+        showLock('🔒','예약이 종료되었습니다','예약 기간이 종료되었습니다.\n문의사항은 담당 선생님께 연락해주세요.',s,e,fmt); return;
+      }
+    }
+  } catch(err) { /* 오류 시 진행 */ }
+
   const max  = student.예약횟수 || 5;
   const curr = Object.keys(myReservations).length;
-
   if (curr >= max) {
     toast(`최대 예약 횟수(${max}회)에 도달했습니다.`, 'warn'); return;
   }

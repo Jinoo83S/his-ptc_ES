@@ -115,6 +115,7 @@ const db = firebase.database();
 
 let student = null;
 let myRes = [];
+let ptcPeriod = null;
 
 let ptcDateLabel = 'PTC Day';
 
@@ -126,8 +127,12 @@ function init() {
   document.getElementById('stu-info').textContent = `${student.학년}학년`;
 
   // PTC 날짜 로드 후 예약 목록 표시
-  db.ref('settings/ptcDate').once('value').then(snap => {
-    if (snap.val()) ptcDateLabel = snap.val();
+  Promise.all([
+    db.ref('settings/ptcDate').once('value'),
+    db.ref('settings/period').once('value')
+  ]).then(([dSnap, pSnap]) => {
+    if (dSnap.val()) ptcDateLabel = dSnap.val();
+    ptcPeriod = pSnap.val();
     loadReservations();
   }).catch(() => loadReservations());
 }
@@ -185,15 +190,38 @@ function renderReservations() {
         <div class="rc-subj">${r.과목 || ''}</div>
         <div class="rc-time">${r.시간}</div>
         <div class="rc-date">📅 ${ptcDateLabel} (PTC Day)</div>
-        <button class="btn-cancel" onclick="doCancel('${esc(r.key)}','${esc(r.교사)}','${esc(r.시간ID||'')}')">
-          예약 취소
-        </button>
+        ${(() => {
+          const now = Date.now();
+          const inPeriod = !ptcPeriod || !ptcPeriod.start || !ptcPeriod.end ||
+            (now >= new Date(ptcPeriod.start).getTime() && now <= new Date(ptcPeriod.end).getTime());
+          return inPeriod
+            ? `<button class="btn-cancel" onclick="doCancel('${esc(r.key)}','${esc(r.교사)}','${esc(r.시간ID||'')}')">예약 취소</button>`
+            : `<button class="btn-cancel" disabled style="opacity:.4;cursor:not-allowed;background:var(--bg);color:var(--sb);border-color:var(--bd)">예약 취소 불가 (기간 외)</button>`;
+        })()}
       </div>
     </div>`;
   }).join('')}</div>`;
 }
 
+// ── 예약 기간 외 차단 ────────────────────────────
+async function checkPeriodForAction() {
+  try {
+    const snap = await db.ref('settings/period').once('value');
+    const p = snap.val();
+    if (!p || !p.start || !p.end) return true; // 미설정 → 허용
+    const now = Date.now();
+    if (now < new Date(p.start).getTime() || now > new Date(p.end).getTime()) {
+      const s = new Date(p.start), e = new Date(p.end);
+      const fmt = d => d.toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+      toast(`예약 기간이 아닙니다 (${fmt(s)} ~ ${fmt(e)})`, 'err');
+      return false;
+    }
+    return true;
+  } catch(e) { return true; }
+}
+
 async function doCancel(rvKey, teacher, timeId) {
+  if (!await checkPeriodForAction()) return;
   if (!confirm(`"${teacher} 선생님" 예약을 취소하시겠습니까?`)) return;
 
   try {

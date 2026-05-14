@@ -337,7 +337,25 @@ function closeCf() {
 }
 
 // ── 예약 처리 (Firebase Transaction) ────────────
+// ── 예약 기간 외 차단 ────────────────────────────
+async function checkPeriodForAction() {
+  try {
+    const snap = await db.ref('settings/period').once('value');
+    const p = snap.val();
+    if (!p || !p.start || !p.end) return true;
+    const now = Date.now();
+    if (now < new Date(p.start).getTime() || now > new Date(p.end).getTime()) {
+      const s = new Date(p.start), e = new Date(p.end);
+      const fmt = d => d.toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+      toast(`예약 기간이 아닙니다 (${fmt(s)} ~ ${fmt(e)})`, 'err');
+      return false;
+    }
+    return true;
+  } catch(e) { return true; }
+}
+
 async function doReserve() {
+  if (!await checkPeriodForAction()) return;
   if (!selectedSlotKey || reserving) return;
 
   const btn = document.getElementById('cf-confirm');
