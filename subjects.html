@@ -301,15 +301,16 @@ function renderTeachers(teacherMap) {
         ? `<div class="booked-time">⏰ ${booked.시간}</div>` : '';
       // 2: 남은슬롯/전체 표시
       const slotInfo = tc.slotTotal !== undefined
-        ? `<span style="font-size:10px;color:var(--sb);margin-left:4px">${tc.slotAvail}/${tc.slotTotal}</span>` : '';
+        ? `<span style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.2);color:var(--sb);flex-shrink:0">${tc.slotAvail}/${tc.slotTotal}</span>` : '';
 
       html += `
         <div class="${cardClass}" ${onClick} style="cursor:pointer">
           <div class="tc-ico">${iconMap[type] || '👨‍🏫'}</div>
           <div class="tc-info">
-            <div class="tc-name">${tc.교사} <span class="tc-name-sub">· ${tc.과목}</span>${slotInfo}</div>
+            <div class="tc-name">${tc.교사} <span class="tc-name-sub">· ${tc.과목}</span></div>
             ${bookedTimeHtml}
           </div>
+          ${slotInfo}
           <span class="tc-tag ${tagClass}">${tagLabel}</span>
           ${rightIcon}
         </div>`;
