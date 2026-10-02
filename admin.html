@@ -469,7 +469,8 @@ input[type=file].hidden-file{display:none}
     <div class="paste-collapse" id="sub-paste-area">
       <div class="ps-hint">
         열 구성: <code>학년</code> <code>분류</code> <code>과목명</code> <code>교사이름</code> — 탭으로 구분, 헤더 없이<br>
-        예) <code>1　교과　국어 Korean Language Arts　오민혜</code>
+        예) <code>1　교과　국어 Korean Language Arts　오민혜</code><br>
+        학년에 쉼표로 여러 학년 입력 가능: <code>1,2,3,4,5,6　교과　P.E.　하윤수</code> → 1~6학년 각각에 추가됨
       </div>
       <textarea class="paste-ta" id="sub-paste-ta" placeholder="엑셀 데이터를 붙여넣으세요 (Ctrl+V)" oninput="previewSubPaste()"></textarea>
       <div class="paste-preview" id="sub-paste-preview"></div>
@@ -587,8 +588,8 @@ input[type=file].hidden-file{display:none}
     <input type="hidden" id="modal-keys">
     <p id="m-count" style="font-size:12px;color:var(--sb);margin-bottom:14px"></p>
     <div class="form-row">
-      <label>학년</label>
-      <input type="text" id="m-grade" placeholder="예: 1">
+      <label>학년 <span style="color:var(--sb);font-weight:400;font-size:11px">(쉼표로 여러 학년: 1,2,3 / 비워두면 학생이름 기반·학년무관)</span></label>
+      <input type="text" id="m-grade" placeholder="예: 1 또는 1,2,3 (비워두면 학년무관)">
     </div>
     <div class="form-row">
       <label>분류</label>
@@ -968,7 +969,7 @@ async function deleteAllTimeslotsES() {
 let subjectGroups = [];  // 렌더링된 그룹 (index로 참조)
 
 function getSubjectGroupKey(s) {
-  return `${s.학년}_${s.반}_${s.분류}_${s.과목}_${s.교사}`;
+  return `${s.학년 ?? ''}_${s.반}_${s.분류}_${s.과목}_${s.교사}`;
 }
 
 function renderSubjects() {
@@ -977,7 +978,8 @@ function renderSubjects() {
 
   const groupMap = {};
   Object.entries(allSubjects).forEach(([key, s]) => {
-    if (grade  && String(s.학년) !== grade) return;
+    // 학년이 없는(학생이름 기반) 레코드는 어느 학년 필터에서도 표시
+    if (grade && s.학년 && String(s.학년) !== grade) return;
     if (search && !(
       (s.교사||'').toLowerCase().includes(search) ||
       (s.과목||'').toLowerCase().includes(search) ||
@@ -990,7 +992,9 @@ function renderSubjects() {
   });
 
   subjectGroups = Object.values(groupMap).sort((a, b) => {
-    if (String(a.학년) !== String(b.학년)) return String(a.학년).localeCompare(String(b.학년), undefined, {numeric:true});
+    const ga = a.학년 ? String(a.학년) : '9';  // 학년무관은 맨 뒤로
+    const gb = b.학년 ? String(b.학년) : '9';
+    if (ga !== gb) return ga.localeCompare(gb, undefined, {numeric:true});
     return (a.교사||'').localeCompare(b.교사||'');
   });
 
@@ -1002,7 +1006,7 @@ function renderSubjects() {
 
   tbody.innerHTML = subjectGroups.map((g, idx) => `
     <tr>
-      <td>${g.학년||'-'}학년</td>
+      <td>${g.학년?`${g.학년}학년`:'<span style="color:var(--sb);font-size:12px">학년무관</span>'}</td>
       <td><span style="font-size:12px;padding:2px 7px;border-radius:12px;background:var(--bg);color:var(--nv2)">${g.분류||'-'}</span></td>
       <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;color:var(--sb)">${g.과목||'-'}</td>
       <td><strong>${g.교사||'-'}</strong></td>
@@ -1070,18 +1074,30 @@ async function saveSubject() {
   if (!subject||!teacher) { toast('과목명과 교사를 입력해주세요.', 'err'); return; }
 
   if (keys.length === 0) {
-    // 추가 모드
-    if (!grade) { toast('학년을 입력해주세요.', 'err'); return; }
+    // 추가 모드 — 학년: 쉼표로 여러 학년 가능, 비워두면 학생이름 기반(학년 무관)으로 매칭
+    const grades = grade ? grade.split(',').map(g=>g.trim()).filter(Boolean) : [];
     const studentsRaw = (document.getElementById('m-students').value||'').trim();
     const studentList = studentsRaw ? studentsRaw.split(',').map(s=>s.trim()).filter(Boolean) : [' '];
+    const isPersonal  = !(studentList.length===1 && studentList[0]===' ');
+    if (grades.length) {
+      const badGrade = grades.find(g=>!/^[1-6]$/.test(g));
+      if (badGrade) { toast(`학년은 1~6 사이로 입력해주세요: "${badGrade}"`, 'err'); return; }
+    } else if (!isPersonal) {
+      toast('학년을 입력하거나(쉼표로 여러 학년 가능), 학년을 비워둘 경우 학생이름을 입력해주세요.', 'err'); return;
+    }
+    const gradeTargets = grades.length ? grades : [''];  // '' = 학년 무관(학생이름 기반)
     try {
-      await Promise.all(studentList.map(name => {
-        const newKey = `${grade}_${cls}_${name}_${teacher}`;
-        const data   = { 학년:Number(grade), 반:cls, 분류:type, 이름:name, 과목:subject, 교사:teacher };
-        allSubjects[newKey] = data;
-        return db.ref(`subjects/${newKey}`).set(data);
-      }));
-      toast(`${studentList.length}개 레코드 추가 완료`, 'ok');
+      const writes = [];
+      gradeTargets.forEach(g => {
+        studentList.forEach(name => {
+          const newKey = `${g}_${cls}_${name}_${teacher}`;
+          const data   = { 학년: g ? Number(g) : null, 반:cls, 분류:type, 이름:name, 과목:subject, 교사:teacher };
+          allSubjects[newKey] = data;
+          writes.push(db.ref(`subjects/${newKey}`).set(data));
+        });
+      });
+      await Promise.all(writes);
+      toast(`${writes.length}개 레코드 추가 완료`, 'ok');
       closeModal(); renderSubjects();
     } catch(e) { toast('추가 실패: '+e.message, 'err'); }
   } else {
@@ -1645,11 +1661,14 @@ function parseSubPaste() {
   const rows=[], errors=[];
   raw.split('\n').forEach((line,i) => {
     const cols = line.split('\t').map(c=>c.trim());
-    const [grade, type, subject, teacher] = cols;
-    if (!grade&&!type&&!subject&&!teacher) return;
-    if (!grade||!type||!subject||!teacher) { errors.push(`${i+1}행: 열이 부족합니다 → "${line}"`); return; }
-    if (!/^[1-6]$/.test(grade)) { errors.push(`${i+1}행: 학년은 1~6 → "${grade}"`); return; }
-    rows.push({ grade, type, subject, teacher });
+    const [gradeRaw, type, subject, teacher] = cols;
+    if (!gradeRaw&&!type&&!subject&&!teacher) return;
+    if (!gradeRaw||!type||!subject||!teacher) { errors.push(`${i+1}행: 열이 부족합니다 → "${line}"`); return; }
+    // 학년: 쉼표로 여러 학년 입력 가능 (예: 1,2,3,4,5,6) → 학년별로 레코드 분리
+    const grades = gradeRaw.split(',').map(g=>g.trim()).filter(Boolean);
+    const badGrade = grades.find(g => !/^[1-6]$/.test(g));
+    if (badGrade) { errors.push(`${i+1}행: 학년은 1~6 → "${badGrade}"`); return; }
+    grades.forEach(grade => rows.push({ grade, type, subject, teacher }));
   });
   return { rows, errors };
 }

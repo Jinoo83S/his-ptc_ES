@@ -213,7 +213,9 @@ async function loadData() {
 
     subSnap.forEach(child => {
       const s = child.val();
-      if (String(s.학년) === String(student.학년) && s.반 === student.반) {
+      // 학년이 비어있는 레코드는 학생이름 기반으로 학년 상관없이 매칭
+      const noGrade = (s.학년===undefined || s.학년===null || s.학년==='');
+      if ((noGrade || String(s.학년) === String(student.학년)) && s.반 === student.반) {
         if (!teacherMap[s.교사]) {
           teacherMap[s.교사] = { 과목: s.과목, 분류: s.분류 };
         }
