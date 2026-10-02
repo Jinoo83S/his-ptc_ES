@@ -276,6 +276,7 @@ input[type=file].hidden-file{display:none}
     <div class="top-btns">
       <button class="btn-chgpw" onclick="openPwModal()">🔐 비밀번호</button>
       <button class="tbtn" onclick="refreshAll()">🔄 새로고침</button>
+      <button class="tbtn" style="background:rgba(220,38,38,.35);border-color:rgba(255,150,150,.4)" onclick="resetAllDataES()">⚠️ 전체 데이터 초기화</button>
       <button class="tbtn" onclick="adminLogout()">로그아웃</button>
     </div>
   </div>
@@ -349,6 +350,7 @@ input[type=file].hidden-file{display:none}
       <button class="btn-upload" onclick="document.getElementById('csv-file-input').click()">📂 CSV 업로드</button>
       <input type="file" id="csv-file-input" accept=".csv,.txt" onchange="uploadCSV(this)">
       <button class="btn-upload export" onclick="exportCSV()">⬇️ CSV 내보내기</button>
+      <button class="btn-upload" style="background:var(--rdb);border-color:#FECACA;color:var(--rd)" onclick="deleteAllStudentsES()">🗑️ 전체 삭제</button>
       <span class="upload-tip">CSV: 학년,이름,비밀번호</span>
     </div>
     <!-- 접기/펼치기 붙여넣기 영역 -->
@@ -705,6 +707,23 @@ async function loadAll() {
   } catch(e) { console.error(e); toast('데이터 로드 실패', 'err'); }
 }
 function refreshAll() { loadAll().then(() => toast('새로고침 완료', 'ok')); }
+
+// ── 전체 데이터 초기화 (학생/과목/시간/예약 전체 삭제, 설정은 유지) ──
+async function resetAllDataES() {
+  const c1 = Object.keys(allStudents).length;
+  const c2 = Object.keys(allSubjects).length;
+  const c3 = Object.keys(allTimeslots).length;
+  const c4 = Object.keys(allReservations).length;
+  if (!c1 && !c2 && !c3 && !c4) { toast('초기화할 데이터가 없습니다.', 'warn'); return; }
+  if (!confirm(`⚠️ 전체 데이터 초기화\n\n학생 명단 ${c1}명\n수강과목 ${c2}건\n교사 시간 ${c3}건\n예약 ${c4}건\n\n위 데이터가 모두 삭제됩니다. (관리자 비밀번호·예약기간·PTC날짜 등 설정값은 유지됩니다)\n이 작업은 되돌릴 수 없습니다. 계속하시겠습니까?`)) return;
+  if (prompt('정말로 전체 초기화하려면 "초기화"를 입력하세요.') !== '초기화') { toast('취소되었습니다.', 'warn'); return; }
+  try {
+    await db.ref().update({ students: null, subjects: null, timeslots: null, reservations: null });
+    toast('✅ 전체 데이터 초기화 완료', 'ok');
+    await loadAll();
+    await loadStuList();
+  } catch(e) { toast('초기화 실패: '+e.message, 'err'); }
+}
 function renderAll()  { renderTimeslots(); renderSubjects(); renderReservations(); renderStudents(); refreshTeacherDatalist(); }
 
 // ── 탭 전환 ──────────────────────────────────────
@@ -1487,6 +1506,20 @@ async function delStudent(key, name) {
     toast(`${name} 삭제 완료`, 'ok');
     await loadStuList();
   } catch(e) { toast('삭제 실패: ' + e.message, 'err'); }
+}
+
+// ── 학생 명단 전체 삭제 ─────────────────────────
+async function deleteAllStudentsES() {
+  const cnt = allStudentList.length;
+  if (!cnt) { toast('삭제할 학생이 없습니다.', 'warn'); return; }
+  if (!confirm(`🗑️ 학생 명단 전체 삭제\n\n등록된 학생 ${cnt}명을 모두 삭제합니다.\n\n이 작업은 되돌릴 수 없습니다. 계속하시겠습니까?`)) return;
+  if (!confirm('정말로 전체 학생 명단을 삭제하시겠습니까?')) return;
+  try {
+    await db.ref('students').remove();
+    allStudents = {};
+    toast(`✅ 학생 ${cnt}명 전체 삭제 완료`, 'ok');
+    await loadStuList();
+  } catch(e) { toast('삭제 실패: '+e.message, 'err'); }
 }
 
 // ── CSV 업로드 ─────────────────────────────────
