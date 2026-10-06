@@ -185,7 +185,7 @@ const db = firebase.database();
 // PTC 날짜 동적 표시
 db.ref('settings/ptcDate').once('value').then(snap => {
   if (snap.val()) {
-    document.getElementById('ptc-chip').textContent = `📅 PTC 예약 2026 · ${snap.val()}`;
+    document.getElementById('ptc-chip').textContent = `📅 PTC 2026 · ${snap.val()}`;
   }
 }).catch(()=>{});
 
