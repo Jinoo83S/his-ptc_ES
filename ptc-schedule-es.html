@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex,nofollow">
+<title>HIS PTC 예약현황 (초등)</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --gn:#1E9E5A;--hd:#1E9E5A;--gn2:#17804A;--gnl:#E3F5EA;--gnm:#C9EBD6;
+  --tx:#14221A;--sb:#5E6F65;--bd:#C9D8CF;--bg:#F3F7F4;
+  --bk:#FFF4C2;--bkt:#6B4E00;--off:#E9ECEA;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:14px}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);height:100dvh;display:flex;flex-direction:column}
+
+/* 상단 */
+.top{background:var(--hd);color:#fff;padding:10px 16px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:14px}
+.top h1{font-size:20px;font-weight:900;letter-spacing:.3px;text-align:center}
+.right{justify-self:end;display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end;font-size:11px;color:rgba(255,255,255,.9)}
+.lg{display:inline-flex;align-items:center;gap:5px}
+.lg i{width:12px;height:12px;border-radius:3px;display:inline-block;border:1px solid rgba(255,255,255,.6)}
+.live{display:inline-flex;align-items:center;gap:6px}
+.dot{width:8px;height:8px;border-radius:50%;background:#bbb}
+.dot.ok{background:#9CFFC2}
+
+/* 표 */
+.wrap{flex:1;min-height:0;overflow:auto;background:#fff}
+table{border-collapse:separate;border-spacing:0;font-size:var(--fs,13px);width:100%;height:100%;table-layout:fixed}
+th,td{border-right:1px solid var(--bd);border-bottom:1px solid var(--bd);padding:0 2px;height:auto;white-space:normal;overflow-wrap:anywhere;word-break:normal;line-height:1.15;text-align:center;overflow:hidden}
+thead th{position:sticky;top:0;z-index:3;background:var(--hd);color:#fff;font-weight:700;height:auto;padding:3px 1px 2px;border-right:1px solid rgba(255,255,255,.28);border-bottom:none}
+thead th small{display:block;font-weight:500;font-size:.85em;opacity:.85;margin-top:1px}
+thead th.corner{left:0;z-index:5;white-space:nowrap}
+tbody th{white-space:nowrap;word-break:normal;position:sticky;left:0;z-index:2;background:var(--gnl);color:var(--gn2);font-weight:700;font-size:.9em}
+td.bk{background:var(--bk);color:var(--bkt);font-weight:700}
+td.off{background:repeating-linear-gradient(45deg,var(--off),var(--off) 5px,#f6f7f6 5px,#f6f7f6 10px)}
+td.none{background:#FAFBFA}
+tbody tr:nth-child(even) th{background:var(--gnm)}
+tbody tr:hover td:not(.bk){background:#F1FAF4}
+td .gc{font-weight:500;font-size:.8em;opacity:.7;margin-left:2px}
+th.hl,td.hl{box-shadow:inset 0 0 0 2px #0b6b3b}
+.msg{padding:40px 20px;text-align:center;color:var(--sb)}
+@media print{.top{padding:6px}body{height:auto}.wrap{overflow:visible}}
+</style>
+</head>
+<body>
+<div class="top">
+  <div></div>
+  <h1 id="title">HIS PTC 교사별 예약현황</h1>
+  <div class="right">
+    <span class="lg"><i style="background:var(--bk)"></i>예약됨</span>
+    <span class="lg"><i style="background:#fff"></i>예약 가능</span>
+    <span class="lg"><i style="background:repeating-linear-gradient(45deg,#E9ECEA,#E9ECEA 4px,#f6f7f6 4px,#f6f7f6 8px)"></i>예약 불가</span>
+    <span class="live"><span class="dot" id="dot"></span><span id="upd">연결 중…</span></span>
+  </div>
+</div>
+<div class="wrap" id="wrap"><div class="msg">불러오는 중…</div></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+// ── 두 학교(Firebase 프로젝트) 설정 ───────────────
+const CONFIGS = {
+  es: { label:'초등', cfg:{
+    apiKey:"AIzaSyANsFefoPEAdLv38VXVO17RwpzItUEi5Ls", authDomain:"his-ptc-es.firebaseapp.com",
+    databaseURL:"https://his-ptc-es-default-rtdb.asia-southeast1.firebasedatabase.app", projectId:"his-ptc-es",
+    storageBucket:"his-ptc-es.firebasestorage.app", messagingSenderId:"152799450434",
+    appId:"1:152799450434:web:2c3abb2eaa8f309e4324db" }}
+};
+
+// URL 파라미터: ?t=교사이름 (해당 교사 열 강조)
+const params = new URLSearchParams(location.search);
+const school = 'es';
+const focusTeacher = (params.get('t') || '').trim();
+
+const apps = {};
+function getDb(s) {
+  if (!apps[s]) apps[s] = firebase.initializeApp(CONFIGS[s].cfg, s);
+  return apps[s].database();
+}
+
+let state = { slots:{}, rvs:{}, ptcDate:'' };
+let off = [];  // 현재 구독 해제 함수들
+
+function esc(s){ return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function timeOf(s){ return s['시간'] || s['시간목록'] || ''; }
+// 시작 시각(분) 계산: 24시간제 / AM·PM·오전·오후 표기 / AM·PM 없는 12시간제(1~6시는 오후로 간주) 모두 처리
+function sortKey(t){
+  const s = String(t).toLowerCase();
+  let m = s.match(/(\d{1,2})\s*[:.시]\s*(\d{2})?/);
+  if (!m) return 99999;
+  let h = +m[1]; const mi = +(m[2] || 0);
+  const pm = /pm|p\.m|오후/.test(s), am = /am|a\.m|오전/.test(s);
+  if (pm && h < 12) h += 12;
+  // 학교 일과 기준: 'AM 12:xx'도 정오(12시)로 처리
+  else if (!pm && !am && h >= 1 && h <= 6) h += 12;
+  return h * 60 + mi;
+}
+
+function subscribe() {
+  off.forEach(f => f()); off = [];
+  state = { slots:{}, rvs:{}, ptcDate:'' };
+  document.getElementById('wrap').innerHTML = '<div class="msg">불러오는 중…</div>';
+  setLive(false, '연결 중…');
+  const db = getDb(school);
+  const bind = (path, key) => {
+    const ref = db.ref(path);
+    const cb = snap => { state[key] = snap.val() || (key==='ptcDate' ? '' : {}); render(); setLive(true); };
+    ref.on('value', cb, err => { console.error(err); setLive(false, '불러오기 실패'); });
+    off.push(() => ref.off('value', cb));
+  };
+  bind('timeslots', 'slots');
+  bind('reservations', 'rvs');
+  bind('settings/ptcDate', 'ptcDate');
+}
+
+function setLive(ok, msg) {
+  document.getElementById('dot').className = 'dot' + (ok ? ' ok' : '');
+  document.getElementById('upd').textContent = ok
+    ? '실시간 · ' + new Date().toLocaleTimeString('ko-KR', {hour:'2-digit', minute:'2-digit', second:'2-digit'})
+    : msg;
+}
+
+function render() {
+  const label = CONFIGS[school].label;
+  document.getElementById('title').textContent =
+    `HIS ${school==='ms' ? 'MHS' : 'ES'} PTC 예약현황` + (state.ptcDate ? ` · ${state.ptcDate}` : '');
+  document.title = `HIS PTC 예약현황 (${label})`;
+  
+  const slots = Object.entries(state.slots).map(([key, s]) => ({ key, ...s, _t: timeOf(s) }));
+  if (!slots.length) { document.getElementById('wrap').innerHTML = '<div class="msg">등록된 교사 시간이 없습니다.</div>'; return; }
+
+  // 예약 상세(학년/반) 조회용: 교사|학생 → 예약
+  const rvMap = {};
+  Object.values(state.rvs).forEach(r => { rvMap[`${r.교사}|${r.학생}`] = r; });
+
+  // 교사 / 시간 목록
+  const byTeacher = {};
+  const times = new Set();
+  slots.forEach(s => {
+    if (!s.교사 || !s._t) return;
+    times.add(s._t);
+    (byTeacher[s.교사] ||= {})[s._t] = s;
+  });
+  let teachers = Object.keys(byTeacher).sort((a,b) => a.localeCompare(b, 'ko'));
+  const shown = teachers;
+  // 정렬: 런치(Lunch/런치/점심) 행은 AM 끝과 PM 시작 사이에 배치
+  const isLunch = t => /lunch|런치|점심/i.test(t);
+  const isAM = t => /am|a\.m|오전/i.test(t) && !isLunch(t);
+  const isPM = t => /pm|p\.m|오후/i.test(t) && !isLunch(t);
+  const keyMap = {};
+  times.forEach(t => { keyMap[t] = sortKey(t); });
+  const tl = [...times].filter(t => !isLunch(t));
+  const amK = tl.filter(isAM).map(t => keyMap[t]), pmK = tl.filter(isPM).map(t => keyMap[t]);
+  const lunchKey = amK.length ? Math.max(...amK) + 0.5
+                 : pmK.length ? Math.min(...pmK) - 0.5
+                 : Math.max(0, ...tl.map(t => keyMap[t]).filter(k => k < 720)) + 0.5;
+  times.forEach(t => { if (isLunch(t)) keyMap[t] = lunchKey; });
+  const rows = [...times].sort((a,b) => keyMap[a] - keyMap[b] || a.localeCompare(b));
+
+  if (!shown.length) { document.getElementById('wrap').innerHTML = '<div class="msg">검색 결과가 없습니다.</div>'; return; }
+
+  const head = shown.map(t => {
+    const all = Object.values(byTeacher[t]);
+    const bk  = all.filter(s => String(s.예약완료 || '').trim()).length;
+    const hl  = focusTeacher && t === focusTeacher ? ' class="hl"' : '';
+    return `<th${hl}>${esc(t)}<small>${bk}/${all.length}</small></th>`;
+  }).join('');
+
+  const body = rows.map(time => {
+    const cells = shown.map(t => {
+      const s = byTeacher[t][time];
+      const hl = focusTeacher && t === focusTeacher ? ' hl' : '';
+      if (!s) return `<td class="none${hl}"></td>`;
+      const name = String(s.예약완료 || '').trim();
+      if (name) {
+        const r = rvMap[`${t}|${name}`];
+        const gc = r ? `${r.학년}${school==='ms' ? (r.반||'') : ''}` : '';
+        const tip = r ? `${r.학년}학년${school==='ms' ? ' ' + (r.반||'') + '반' : ''} · ${t} · ${time}` : `${t} · ${time}`;
+        return `<td class="bk${hl}" title="${esc(tip)}">${esc(name)}${gc ? `<span class="gc">${esc(gc)}</span>` : ''}</td>`;
+      }
+      if (s.예약가능 === false) return `<td class="off${hl}" title="예약 불가"></td>`;
+      return `<td class="${hl.trim()}"></td>`;
+    }).join('');
+    return `<tr><th>${esc(time)}</th>${cells}</tr>`;
+  }).join('');
+
+  const wrap = document.getElementById('wrap');
+  const sx = wrap.scrollLeft, sy = wrap.scrollTop;
+  const n = shown.length, R = rows.length;
+  const W = wrap.clientWidth || window.innerWidth, H = wrap.clientHeight || (window.innerHeight - 50);
+  const maxLen = Math.max(...rows.map(r => r.length));
+  let timeW = 5, fs = 13;
+  for (let i = 0; i < 4; i++) {   // 가로(열 폭)·세로(행 높이)·시간열 폭을 함께 맞춰 스크롤이 생기지 않게 함
+    const colPx = W * (100 - timeW) / 100 / n;
+    const lines = colPx / fs >= 9 ? 1 : 2;               // 셀 안 이름이 몇 줄로 나뉠지 추정
+    const rowH  = (H - (fs * 3.8 + 8)) / R;              // 헤더 높이를 뺀 행당 높이
+    const fsW = colPx / 5, fsH = rowH / (lines * 1.2 + 0.4);
+    fs = Math.max(6.5, Math.min(14, fsW, fsH));
+    timeW = Math.max(4, (maxLen * fs * 0.6 + 8) / W * 100);  // 시간 열은 내용 길이만큼만
+  }
+  fs = fs.toFixed(1);
+  const colW = ((100 - timeW) / n).toFixed(3);
+  const cols = `<colgroup><col style="width:${timeW.toFixed(2)}%">${('<col style="width:'+colW+'%">').repeat(n)}</colgroup>`;
+  wrap.innerHTML = `<table style="--fs:${fs}px">${cols}<thead><tr><th class="corner">시간</th>${head}</tr></thead><tbody>${body}</tbody></table>`;
+  wrap.scrollLeft = sx; wrap.scrollTop = sy;
+}
+
+// 이벤트
+window.addEventListener('resize', () => render());
+
+// 강조 교사가 있으면 검색창에 채우지 않고 해당 열로 스크롤
+function scrollToFocus() {
+  if (!focusTeacher) return;
+  const el = document.querySelector('th.hl'); if (el) el.scrollIntoView({ inline:'center', block:'nearest' });
+}
+let first = true;
+const _render = render;
+render = function(){ _render(); if (first && document.querySelector('th.hl')) { first = false; scrollToFocus(); } };
+
+subscribe();
+</script>
+</body>
+</html>
